@@ -5,6 +5,7 @@
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 #include "gtest/gtest.h"
+#include "gtest/internal/gtest-port.h"
 
 // Terrible hack to try make gflags and absl sort of play nice.
 // TODO(@monkeynova): Rip this out when absl::log obviates the need for
@@ -37,6 +38,16 @@ static void StripGflags(int* argc, char*** argv) {
       *argc -= argv_to_remove;
     }
   }
+}
+
+void InitializeAbslFlagsFromGtest() {
+  std::vector<std::string> string_argvs = testing::internal::GetArgvs();
+  std::vector<const char*> raw_argvs(string_argvs.size());
+  for (int i = 0; i < string_argvs.size(); ++i) {
+    raw_argvs[i] = string_argvs[i].c_str();
+  }
+  int argc = raw_argvs.size();
+  absl::ParseCommandLine(argc, const_cast<char**>(raw_argvs.data()));
 }
 
 std::vector<char*> InitMain(int argc, char** argv) {
