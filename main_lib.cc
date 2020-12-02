@@ -47,7 +47,14 @@ void InitializeAbslFlagsFromGtest() {
     raw_argvs[i] = string_argvs[i].c_str();
   }
   int argc = raw_argvs.size();
-  absl::ParseCommandLine(argc, const_cast<char**>(raw_argvs.data()));
+  char** argv = const_cast<char**>(raw_argvs.data());
+  gflags::AllowCommandLineReparsing();
+  gflags::ParseCommandLineFlags(&argc, &argv, /*remove_flags=*/false);
+  StripGflags(&argc, &argv);
+  // benchmark and gflags both want --v=. Give priority to gflags since that's
+  // the one in glog and we want VLOG(#) to work in puzzle code.
+  benchmark::Initialize(&argc, argv);
+  absl::ParseCommandLine(argc, argv);
 }
 
 std::vector<char*> InitMain(int argc, char** argv) {
