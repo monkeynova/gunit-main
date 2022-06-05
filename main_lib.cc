@@ -1,3 +1,5 @@
+#include "absl/debugging/failure_signal_handler.h"
+#include "absl/debugging/symbolize.h"
 #include "absl/flags/parse.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/strip.h"
@@ -58,8 +60,11 @@ void InitializeAbslFlagsFromGtest() {
 }
 
 std::vector<char*> InitMain(int argc, char** argv) {
+  absl::InitializeSymbolizer(argv[0]);
+  absl::FailureSignalHandlerOptions options;
+  absl::InstallFailureSignalHandler(options);
+
   google::InitGoogleLogging(argv[0]);
-  google::InstallFailureSignalHandler();
   testing::InitGoogleTest(&argc, argv);
   gflags::AllowCommandLineReparsing();
   gflags::ParseCommandLineFlags(&argc, &argv, /*remove_flags=*/false);
