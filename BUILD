@@ -8,7 +8,7 @@ cc_library(
 	"@com_google_absl//absl/flags:flag",
 	"@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/strings",
-        "@com_google_benchmark//:benchmark",
+        "@com_github_google_benchmark//:benchmark",
 	"@com_google_glog//:glog",
         "@com_google_googletest//:gtest",
     ],
