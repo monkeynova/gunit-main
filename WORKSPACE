@@ -14,29 +14,35 @@ git_repository(
     name = "com_google_googletest",
     remote = "https://github.com/google/googletest.git",
     # branch = "main",
-    commit = "adeef192947fbc0f68fa14a6c494c8df32177508",
+    commit = "afd902e992b720d1b3e106bc5e425a5768872265",
+)
+
+git_repository(
+    name = "bazel_skylib",
+    remote = "https://github.com/bazelbuild/bazel-skylib.git",
+    commit = "1bbb388780f6016b6981a2f075fb457e999bc3bd"
 )
 
 git_repository(
     name = "com_google_absl",
     remote = "https://github.com/abseil/abseil-cpp.git",
-    commit = "d0c433455801e1c1fb6f486f0b447e22f946ab52",
+    commit = "92fdbfb301f8b301b28ab5c99e7361e775c2fb8a",
 )
 
 git_repository(
     name = "com_github_gflags_gflags",
     remote = "https://github.com/gflags/gflags.git",
-    commit = "f7388c6655e699f777a5a74a3c9880b9cfaabe59",
+    commit = "a738fdf9338412f83ab3f26f31ac11ed3f3ec4bd",
 )
 
 git_repository(
     name = "com_github_google_benchmark",
     remote = "https://github.com/google/benchmark.git",
-    commit = "1302d2ce094a9753b0f81a81ea74c0fa71fae582",
+    commit = "e991355c02b93fe17713efe04cbc2e278e00fdbd",
 )
 
 git_repository(
     name = "com_google_glog",
     remote = "https://github.com/google/glog.git",
-    commit = "0a2e5931bd5ff22fd3bf8999eb8ce776f159cda6",
+    commit = "b70ea80433c2a8f20b832be97b90f1f82b0d29e9",
 )
