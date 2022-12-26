@@ -19,35 +19,38 @@ sh_test(
 
 cc_library(
     name = "main_lib",
-    hdrs = ["main_lib.h"],
     srcs = ["main_lib.cc"],
-    deps = [
-	"@com_google_absl//absl/debugging:failure_signal_handler",
-	"@com_google_absl//absl/debugging:symbolize",
-	"@com_google_absl//absl/flags:flag",
-	"@com_google_absl//absl/flags:parse",
-        "@com_google_absl//absl/strings",
-        "@com_github_google_benchmark//:benchmark",
-	"@com_google_glog//:glog",
-        "@com_google_googletest//:gtest",
-    ],
+    hdrs = ["main_lib.h"],
     visibility = [
         "//visibility:public",
-    ]
+    ],
+    deps = [
+        "@com_github_google_benchmark//:benchmark",
+        "@com_google_absl//absl/debugging:failure_signal_handler",
+        "@com_google_absl//absl/debugging:symbolize",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/log",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/log:flags",
+        "@com_google_absl//absl/log:initialize",
+        "@com_google_absl//absl/strings",
+        "@com_google_googletest//:gtest",
+    ],
 )
 
 cc_library(
     name = "test_main",
-    srcs = ["test_main.cc"],
     testonly = 1,
+    srcs = ["test_main.cc"],
+    visibility = [
+        "//visibility:public",
+    ],
     deps = [
         ":main_lib",
-	"@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_googletest//:gtest",
     ],
-    visibility = [
-        "//visibility:public",
-    ]
 )
-

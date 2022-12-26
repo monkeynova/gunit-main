@@ -30,12 +30,6 @@ git_repository(
 )
 
 git_repository(
-    name = "com_github_gflags_gflags",
-    remote = "https://github.com/gflags/gflags.git",
-    commit = "a738fdf9338412f83ab3f26f31ac11ed3f3ec4bd",
-)
-
-git_repository(
     name = "com_github_google_benchmark",
     remote = "https://github.com/google/benchmark.git",
     commit = "e991355c02b93fe17713efe04cbc2e278e00fdbd",
