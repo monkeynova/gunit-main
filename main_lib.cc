@@ -42,7 +42,6 @@ void ParseSubArgv(std::string sub_argv, absl::string_view argv0, SubArgv* ret) {
 }
 
 std::vector<char*> InitMain(int argc, char** argv) {
-  std::cerr << "InitMain(" << argv[0] << ")";
   absl::InitializeSymbolizer(argv[0]);
   absl::InstallFailureSignalHandler(/*options=*/{});
   absl::InitializeLog();
