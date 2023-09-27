@@ -38,6 +38,7 @@ void ParseSubArgv(std::string sub_argv, absl::string_view argv0, SubArgv* ret) {
   for (absl::string_view arg : ret->args) {
     ret->arg_cstr.push_back(const_cast<char*>(arg.data()));
   }
+  ret->arg_cstr.push_back(nullptr);
   ret->argv = const_cast<char**>(ret->arg_cstr.data());
 }
 
