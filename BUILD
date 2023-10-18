@@ -54,3 +54,12 @@ cc_library(
         "@com_google_googletest//:gtest",
     ],
 )
+
+cc_test(
+    name = "meta_test",
+    srcs = ["meta_test.cc"],
+    deps = [
+        ":test_main",
+        "@com_google_googletest//:gtest",
+    ],
+)

@@ -15,31 +15,38 @@
 ABSL_FLAG(std::string, benchmark_flags, "", "...");
 ABSL_FLAG(std::string, gtest_flags, "", "...");
 
-struct SubArgv {
+class SubArgv {
+ public:
   SubArgv() = default;
 
   // Neither copyable nor movable (pointers into structures).
-  // Which, of course, means this isn't POD and shouldn't be a struct;
   SubArgv(const SubArgv&) = delete;
   SubArgv& operator=(const SubArgv&) = delete;
 
-  std::vector<std::string> args;
-  std::vector<char*> arg_cstr;
-  int argc = 0;
-  char** argv = nullptr;
+  void ParseSubArgv(std::string sub_argv, absl::string_view argv0);
+
+  int argc() { return argc_; }
+  int* argc_ptr() { return &argc_; }
+  char** argv() const { return argv_; }
+
+ private:
+  std::vector<std::string> args_;
+  std::vector<char*> arg_cstr_;
+  int argc_ = 0;
+  char** argv_ = nullptr;
 };
 
-void ParseSubArgv(std::string sub_argv, absl::string_view argv0, SubArgv* ret) {
-  ret->args = sub_argv.empty() ? std::vector<std::string>{}
-                               : absl::StrSplit(sub_argv, ",");
+void SubArgv::ParseSubArgv(std::string sub_argv, absl::string_view argv0) {
+  args_ = sub_argv.empty() ? std::vector<std::string>{}
+                           : absl::StrSplit(sub_argv, ",");
 
-  ret->argc = ret->args.size() + 1;
-  ret->arg_cstr = {const_cast<char*>(argv0.data())};
-  for (absl::string_view arg : ret->args) {
-    ret->arg_cstr.push_back(const_cast<char*>(arg.data()));
+  argc_ = args_.size() + 1;
+  arg_cstr_ = {const_cast<char*>(argv0.data())};
+  for (absl::string_view arg : args_) {
+    arg_cstr_.push_back(const_cast<char*>(arg.data()));
   }
-  ret->arg_cstr.push_back(nullptr);
-  ret->argv = const_cast<char**>(ret->arg_cstr.data());
+  arg_cstr_.push_back(nullptr);
+  argv_ = const_cast<char**>(arg_cstr_.data());
 }
 
 std::vector<char*> InitMain(int argc, char** argv) {
@@ -51,17 +58,16 @@ std::vector<char*> InitMain(int argc, char** argv) {
 
   {
     SubArgv benchmark_argv;
-    ParseSubArgv(absl::GetFlag(FLAGS_benchmark_flags), argv[0],
-                 &benchmark_argv);
-    benchmark::Initialize(&benchmark_argv.argc, benchmark_argv.argv);
-    CHECK_EQ(benchmark_argv.argc, 1);
+    benchmark_argv.ParseSubArgv(absl::GetFlag(FLAGS_benchmark_flags), argv[0]);
+    benchmark::Initialize(benchmark_argv.argc_ptr(), benchmark_argv.argv());
+    CHECK_EQ(benchmark_argv.argc(), 1);
   }
 
   {
     SubArgv gtest_argv;
-    ParseSubArgv(absl::GetFlag(FLAGS_gtest_flags), argv[0], &gtest_argv);
-    testing::InitGoogleTest(&gtest_argv.argc, gtest_argv.argv);
-    CHECK_EQ(gtest_argv.argc, 1);
+    gtest_argv.ParseSubArgv(absl::GetFlag(FLAGS_gtest_flags), argv[0]);
+    testing::InitGoogleTest(gtest_argv.argc_ptr(), gtest_argv.argv());
+    CHECK_EQ(gtest_argv.argc(), 1);
   }
 
   return args;
