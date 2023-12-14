@@ -20,7 +20,6 @@ git_repository(
 git_repository(
     name = "bazel_skylib",
     remote = "https://github.com/bazelbuild/bazel-skylib.git",
-    # branch = "main",
     commit = "1bbb388780f6016b6981a2f075fb457e999bc3bd"
 )
 
@@ -33,7 +32,6 @@ git_repository(
 git_repository(
     name = "com_github_google_benchmark",
     remote = "https://github.com/google/benchmark.git",
-    # branch = "main",
     commit = "e991355c02b93fe17713efe04cbc2e278e00fdbd",
 )
 

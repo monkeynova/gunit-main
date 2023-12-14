@@ -1,21 +1,6 @@
-alias(
-    name = "cleanup",
-    actual = "@com_monkeynova_base_workspace//:cleanup",
-)
+load("@com_monkeynova_base_workspace//:default_rules.bzl", "default_rules")
 
-alias(
-    name = "update_workspace",
-    actual = "@com_monkeynova_base_workspace//:update_workspace",
-)
-
-sh_test(
-    name = "diff_bazelrc_test",
-    srcs = ["diff_bazelrc_test.sh"],
-    data = [
-        "base-bazelrc",
-        "@com_monkeynova_base_workspace//:base-bazelrc-file",
-    ],
-)
+default_rules()
 
 cc_library(
     name = "main_lib",
