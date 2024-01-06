@@ -1,5 +1,5 @@
-#ifndef EULER_COMPUTER_SCIENCE_VLOG_H
-#define EULER_COMPUTER_SCIENCE_VLOG_H
+#ifndef VLOG_H
+#define VLOG_H
 
 // TODO(@monkeynova): Remove when part of absl/log public API.
 
@@ -29,4 +29,4 @@ extern int verbosity_level;
 #define CHECK_NEAR(f1, f2, epsilon) \
   CHECK(abs((f1) - (f2)) < epsilon) << f1 << " ~ " << f2
 
-#endif  // EULER_COMPUTER_SCIENCE_VLOG_H
+#endif  // VLOG_H
