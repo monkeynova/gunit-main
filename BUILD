@@ -10,6 +10,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":vlog",
         "@com_github_google_benchmark//:benchmark",
         "@com_google_absl//absl/debugging:failure_signal_handler",
         "@com_google_absl//absl/debugging:symbolize",
@@ -47,4 +48,15 @@ cc_test(
         ":test_main",
         "@com_google_googletest//:gtest",
     ],
+)
+
+cc_library(
+    name = "vlog",
+    srcs = ["vlog.cc"],
+    hdrs = ["vlog.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_google_absl//absl/flags:flag",
+    ],
+    alwayslink = 1,
 )

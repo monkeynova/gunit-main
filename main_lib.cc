@@ -12,8 +12,7 @@
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
 
-ABSL_FLAG(std::string, benchmark_flags, "", "...");
-ABSL_FLAG(std::string, gtest_flags, "", "...");
+namespace {
 
 class SubArgv {
  public:
@@ -23,7 +22,8 @@ class SubArgv {
   SubArgv(const SubArgv&) = delete;
   SubArgv& operator=(const SubArgv&) = delete;
 
-  void ParseSubArgv(std::string sub_argv, absl::string_view argv0);
+  void SetArgv0(absl::string_view argv0);
+  void AddFlag(std::string sub_argv);
 
   int argc() { return argc_; }
   int* argc_ptr() { return &argc_; }
@@ -36,10 +36,7 @@ class SubArgv {
   char** argv_ = nullptr;
 };
 
-void SubArgv::ParseSubArgv(std::string sub_argv, absl::string_view argv0) {
-  args_ = sub_argv.empty() ? std::vector<std::string>{}
-                           : absl::StrSplit(sub_argv, ",");
-
+void SubArgv::SetArgv0(absl::string_view argv0) {
   argc_ = args_.size() + 1;
   arg_cstr_ = {const_cast<char*>(argv0.data())};
   for (absl::string_view arg : args_) {
@@ -49,6 +46,32 @@ void SubArgv::ParseSubArgv(std::string sub_argv, absl::string_view argv0) {
   argv_ = const_cast<char**>(arg_cstr_.data());
 }
 
+void SubArgv::AddFlag(std::string sub_argv) {
+  if (sub_argv.empty()) return;
+
+  std::vector<std::string> split = absl::StrSplit(sub_argv, ",");
+  args_.insert(args_.end(), split.begin(), split.end());
+}
+
+SubArgv benchmark_argv;
+SubArgv gtest_argv;
+
+}
+
+ABSL_FLAG(std::string, benchmark_flags, "", 
+          "Flags to pass to the google benchmark library. Multiple values may "
+          "be specified in a single entry with comma separation, or by "
+          "through multiple values on the command line.").OnUpdate([] {
+  benchmark_argv.AddFlag(absl::GetFlag(FLAGS_benchmark_flags));
+});
+
+ABSL_FLAG(std::string, gtest_flags, "",
+          "Flags to pass to the google test library. Multiple values may be "
+          "specified in a single entry with comma separation, or by through "
+          "multiple values on the command line.").OnUpdate([] {
+  gtest_argv.AddFlag(absl::GetFlag(FLAGS_gtest_flags));
+});
+
 std::vector<char*> InitMain(int argc, char** argv) {
   absl::InitializeSymbolizer(argv[0]);
   absl::InstallFailureSignalHandler(/*options=*/{});
@@ -57,17 +80,21 @@ std::vector<char*> InitMain(int argc, char** argv) {
   std::vector<char*> args = absl::ParseCommandLine(argc, argv);
 
   {
-    SubArgv benchmark_argv;
-    benchmark_argv.ParseSubArgv(absl::GetFlag(FLAGS_benchmark_flags), argv[0]);
+    benchmark_argv.SetArgv0(argv[0]);
     benchmark::Initialize(benchmark_argv.argc_ptr(), benchmark_argv.argv());
-    CHECK_EQ(benchmark_argv.argc(), 1);
+    CHECK_EQ(benchmark_argv.argc(), 1) << benchmark_argv.argv()[1];
   }
 
   {
-    SubArgv gtest_argv;
-    gtest_argv.ParseSubArgv(absl::GetFlag(FLAGS_gtest_flags), argv[0]);
+    gtest_argv.SetArgv0(argv[0]);
     testing::InitGoogleTest(gtest_argv.argc_ptr(), gtest_argv.argv());
-    CHECK_EQ(gtest_argv.argc(), 1);
+    CHECK_GT(gtest_argv.argc(), 0);
+    CHECK_LT(gtest_argv.argc(), 3);
+    if (gtest_argv.argc() == 2) {
+      // The --help flag is (very explicitly and specially) not consumed by
+      // googletest during flag parsing
+      CHECK_EQ(gtest_argv.argv()[1], std::string_view("--help"));
+    }
   }
 
   return args;
