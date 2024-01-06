@@ -1,6 +1,8 @@
 #ifndef VLOG_H
 #define VLOG_H
 
+#include "absl/log/log.h"
+
 // TODO(@monkeynova): Remove when part of absl/log public API.
 
 namespace internal {

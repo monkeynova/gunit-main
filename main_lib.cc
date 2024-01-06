@@ -11,6 +11,7 @@
 #include "absl/strings/str_split.h"
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
+#include "vlog.h"
 
 namespace {
 
@@ -78,6 +79,8 @@ std::vector<char*> InitMain(int argc, char** argv) {
   absl::InitializeLog();
 
   std::vector<char*> args = absl::ParseCommandLine(argc, argv);
+
+  VLOG(3) << "Init Main";
 
   {
     benchmark_argv.SetArgv0(argv[0]);
