@@ -52,7 +52,6 @@ cc_test(
 
 cc_library(
     name = "vlog",
-    srcs = ["vlog.cc"],
     hdrs = ["vlog.h"],
     visibility = ["//visibility:public"],
     deps = [
