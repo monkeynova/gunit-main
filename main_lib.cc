@@ -4,6 +4,8 @@
 #include "absl/debugging/symbolize.h"
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
+#include "absl/flags/usage.h"
+#include "absl/flags/usage_config.h"
 #include "absl/log/check.h"
 #include "absl/log/flags.h"
 #include "absl/log/initialize.h"
@@ -73,7 +75,21 @@ ABSL_FLAG(std::string, gtest_flags, "",
   gtest_argv.AddFlag(absl::GetFlag(FLAGS_gtest_flags));
 });
 
-std::vector<char*> InitMain(int argc, char** argv) {
+std::vector<char*> InitMain(int argc, char** argv, std::string_view usage) {
+  absl::SetProgramUsageMessage(usage);
+  absl::SetFlagsUsageConfig({
+    .contains_help_flags = [](std::string_view pkg) {
+      if (absl::StartsWith(pkg, "external/")) {
+        // By default don't show flags from external dependencies.
+        if (absl::StartsWith(pkg, "external/gunit-main")) {
+          // But do show them from this module.
+          return true;
+        }
+        return false;
+      }
+      return true;
+    }
+  });
   absl::InitializeSymbolizer(argv[0]);
   absl::InstallFailureSignalHandler(/*options=*/{});
   absl::InitializeLog();
