@@ -33,4 +33,7 @@
 #define CHECK_NEAR(f1, f2, epsilon) \
   CHECK(abs((f1) - (f2)) < epsilon) << f1 << " ~ " << f2
 
+#define DCHECK_NEAR(f1, f2, epsilon) \
+  DCHECK(abs((f1) - (f2)) < epsilon) << f1 << " ~ " << f2
+
 #endif  // VLOG_H
