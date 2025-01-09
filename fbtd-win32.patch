@@ -1,0 +1,2288 @@
+diff --git a/file_based_test_driver/BUILD b/file_based_test_driver/BUILD
+index 27f9e5e..300ea29 100644
+--- a/file_based_test_driver/BUILD
++++ b/file_based_test_driver/BUILD
+@@ -11,9 +11,9 @@ cc_library(
+     deps = [
+         ":alternations",
+         ":run_test_case_result",
+-        "//file_based_test_driver/base",
+         # This appears necessary due to a bug in --config=no_modules
+-        "//file_based_test_driver/base:logging",
++        "@com_google_absl//absl/log",
++        "@com_google_absl//absl/log:check",
+         "@com_google_googletest//:gtest",
+         "@com_google_absl//absl/base:core_headers",
+         "@com_google_absl//absl/flags:flag",
+@@ -26,7 +26,6 @@ cc_library(
+         "//file_based_test_driver/base:file_util",
+         "//file_based_test_driver/base:unified_diff",
+         "@com_googlesource_code_re2//:re2",
+-        "//file_based_test_driver/base:status",
+         "//file_based_test_driver/base:ret_check",
+     ],
+ )
+@@ -38,16 +37,15 @@ cc_library(
+     hdrs = ["test_case_options.h"],
+     visibility = ["//visibility:public"],
+     deps = [
+-        "//file_based_test_driver/base",
+         # This appears necessary due to a bug in --config=no_modules
+-        "//file_based_test_driver/base:logging",
++        "@com_google_absl//absl/log",
++        "@com_google_absl//absl/log:check",
+         "@com_google_absl//absl/base:core_headers",
+         "@com_google_absl//absl/container:flat_hash_map",
+         "@com_google_absl//absl/status",
+         "@com_google_absl//absl/strings",
+         "@com_google_absl//absl/time",
+         "//file_based_test_driver/base:source_location",
+-        "//file_based_test_driver/base:status",
+         "//file_based_test_driver/base:ret_check",
+     ],
+ )
+@@ -62,7 +60,6 @@ cc_library(
+         ":test_case_mode",
+         "//file_based_test_driver/base:map_util",
+         "//file_based_test_driver/base:ret_check",
+-        "//file_based_test_driver/base:status",
+         "@com_google_absl//absl/base:core_headers",
+         "@com_google_absl//absl/container:node_hash_map",
+         "@com_google_absl//absl/status",
+@@ -78,8 +75,10 @@ cc_library(
+     hdrs = ["test_case_mode.h"],
+     visibility = ["//visibility:public"],
+     deps = [
+-        "//file_based_test_driver/base:status",
+-        "//file_based_test_driver/base:statusor",
++        "//file_based_test_driver/base:ret_check",
++        "//file_based_test_driver/base:status_builder",
++        "@com_google_absl//absl/status",
++        "@com_google_absl//absl/status:statusor",
+         "@com_google_absl//absl/container:node_hash_map",
+         "@com_google_absl//absl/container:node_hash_set",
+         "@com_google_absl//absl/hash",
+@@ -93,10 +92,9 @@ cc_test(
+     srcs = ["test_case_mode_test.cc"],
+     deps = [
+         ":test_case_mode",
+-        "//file_based_test_driver/base:status",
+-        "//file_based_test_driver/base:status_matchers",
+-        "@com_google_googletest//:gtest_main",
+         "@com_google_absl//absl/status",
++        "@com_google_absl//absl/status_matchers",
++        "@com_google_googletest//:gtest_main",
+     ],
+ )
+ 
+@@ -106,7 +104,7 @@ cc_test(
+     srcs = ["test_case_options_test.cc"],
+     deps = [
+         ":test_case_options",
+-        "//file_based_test_driver/base:status_matchers",
++        "@com_google_absl//absl/status_matchers",
+         "@com_google_googletest//:gtest_main",
+         "@com_google_absl//absl/time",
+     ],
+@@ -119,7 +117,7 @@ cc_test(
+     deps = [
+         ":file_based_test_driver",
+         "//file_based_test_driver/base:file_util",
+-        "//file_based_test_driver/base:status_matchers",
++        "@com_google_absl//absl/status_matchers",
+         "@com_google_googletest//:gtest_main",
+         "@com_google_absl//absl/flags:flag",
+         "@com_google_absl//absl/functional:bind_front",
+@@ -161,13 +159,12 @@ cc_test(
+         ":test_case_mode",
+         ":test_case_options",
+         "//file_based_test_driver/base:path",
+-        "//file_based_test_driver/base:status",
+-        "//file_based_test_driver/base:status_matchers",
++        "@com_google_absl//absl/status",
++        "@com_google_absl//absl/status_matchers",
+         "@com_google_googletest//:gtest_main",
+         "@com_google_absl//absl/container:node_hash_map",
+         "@com_google_absl//absl/flags:flag",
+         "@com_google_absl//absl/functional:bind_front",
+-        "@com_google_absl//absl/status",
+         "@com_google_absl//absl/strings",
+     ],
+ )
+@@ -179,8 +176,9 @@ cc_test(
+     deps = [
+         ":test_case_mode",
+         ":test_case_outputs",
+-        "//file_based_test_driver/base:status",
+-        "//file_based_test_driver/base:status_matchers",
++        "//file_based_test_driver/base:status_builder",
++        "@com_google_absl//absl/status",
++        "@com_google_absl//absl/status_matchers",
+         "@com_google_googletest//:gtest_main",
+     ],
+ )
+@@ -203,6 +201,7 @@ cc_library(
+     deps = [
+         ":run_test_case_result",
+         "//file_based_test_driver/base:ret_check",
++        "@com_google_absl//absl/log",
+         "@com_google_absl//absl/status",
+         "@com_google_absl//absl/strings",
+         "@com_googlesource_code_re2//:re2",
+diff --git a/file_based_test_driver/base/BUILD b/file_based_test_driver/base/BUILD
+index 9279d64..3fa42a2 100644
+--- a/file_based_test_driver/base/BUILD
++++ b/file_based_test_driver/base/BUILD
+@@ -59,26 +59,22 @@ cc_test(
+ )
+ 
+ cc_library(
+-    name = "status",
++    name = "status_builder",
+     srcs = [
+         "status_builder.cc",
+-        "statusor.cc",
+     ],
+     hdrs = [
+-        "status.h",
+         "status_builder.h",
+-        "status_macros.h",
+-        "statusor.h",
+-        "statusor_internals.h",
+     ],
+     visibility = ["//file_based_test_driver:__pkg__"],
+     deps = [
+-        ":logging",
+         ":source_location",
+         "@com_google_absl//absl/base:core_headers",
+         "@com_google_absl//absl/base:log_severity",
+         "@com_google_absl//absl/meta:type_traits",
++        "@com_google_absl//absl/log",
+         "@com_google_absl//absl/status",
++        "@com_google_absl//absl/status:statusor",
+         "@com_google_absl//absl/strings",
+         "@com_google_absl//absl/utility",
+     ],
+@@ -89,13 +85,15 @@ cc_library(
+     srcs = ["ret_check.cc"],
+     hdrs = [
+         "ret_check.h",
++        "status_macros.h",
+     ],
+     visibility = ["//file_based_test_driver:__pkg__"],
+     deps = [
+-        ":logging",
+         ":source_location",
+-        ":status",
++        ":status_builder",
++        "@com_google_absl//absl/log",
+         "@com_google_absl//absl/status",
++        "@com_google_absl//absl/status:statusor",
+     ],
+ )
+ 
+@@ -121,7 +119,7 @@ cc_library(
+     ],
+     visibility = ["//file_based_test_driver:__pkg__"],
+     deps = [
+-        ":logging",
++        "@com_google_absl//absl/log",
+         "@com_google_absl//absl/meta:type_traits",
+     ],
+ )
+@@ -246,7 +244,8 @@ cc_library(
+         "unified_diff_oss.h",
+     ],
+     deps = [
+-        "//file_based_test_driver/base:logging",
++        "@com_google_absl//absl/log:check",
++        "@com_google_absl//absl/log",
+         "//file_based_test_driver/base:map_util",
+         "@com_google_absl//absl/base",
+         "@com_google_absl//absl/base:core_headers",
+@@ -281,7 +280,6 @@ cc_test(
+     deps = [
+         ":lcs_test_util",
+         ":unified_diff_oss",
+-        "//file_based_test_driver/base",
+         "@com_google_googletest//:gtest_main",
+         "@com_google_absl//absl/random",
+         "@com_google_absl//absl/strings",
+@@ -414,8 +412,8 @@ cc_library(
+     testonly = 1,
+     hdrs = ["file_util_oss.h"],
+     deps = [
+-        ":logging",
+         ":path",
++        "@com_google_absl//absl/log",
+         "@com_google_absl//absl/status",
+         "@com_google_absl//absl/strings",
+     ],
+diff --git a/file_based_test_driver/base/diffchunk.cc b/file_based_test_driver/base/diffchunk.cc
+index 5455849..3762b86 100644
+--- a/file_based_test_driver/base/diffchunk.cc
++++ b/file_based_test_driver/base/diffchunk.cc
+@@ -16,7 +16,7 @@
+ 
+ #include "file_based_test_driver/base/diffchunk.h"
+ 
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "absl/strings/string_view.h"
+ 
+ namespace file_based_test_driver_base {
+@@ -30,7 +30,7 @@ absl::string_view DiffChunk::opcode() const { return DiffChunk::opcode(type); }
+ 
+ absl::string_view DiffChunk::opcode(ChunkType type) {
+   if (type > kMaxChunkType) {
+-    FILE_BASED_TEST_DRIVER_LOG(WARNING) << "Invalid chunk type. Ignoring.";
++    LOG(WARNING) << "Invalid chunk type. Ignoring.";
+     return kChunkOpCodesStrings[kMaxChunkType];
+   }
+   return kChunkOpCodesStrings[type];
+diff --git a/file_based_test_driver/base/file_util_oss.h b/file_based_test_driver/base/file_util_oss.h
+index 87ab73d..116c721 100644
+--- a/file_based_test_driver/base/file_util_oss.h
++++ b/file_based_test_driver/base/file_util_oss.h
+@@ -28,7 +28,7 @@
+ #include "absl/strings/str_cat.h"
+ #include "absl/strings/str_split.h"
+ #include "absl/strings/string_view.h"
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "file_based_test_driver/base/path.h"
+ 
+ namespace file_based_test_driver::internal {
+@@ -63,9 +63,6 @@ inline absl::Status Match(absl::string_view filespec,
+   if (stat(filespec.data(), &status) != 0) {
+     return absl::Status(absl::StatusCode::kNotFound,
+                         absl::StrCat("Could not find: ", filespec));
+-  } else if (S_ISREG(status.st_mode) == 0) {
+-    return absl::Status(absl::StatusCode::kInvalidArgument,
+-                        absl::StrCat("File is not regular: ", filespec));
+   }
+ 
+   file_names->push_back(std::string(filespec));
+@@ -81,16 +78,7 @@ inline absl::Status GetContents(absl::string_view filename,
+     return status;
+   }
+ 
+-  struct stat status;
+-  if (stat(filename.data(), &status) != 0) {
+-    return absl::Status(absl::StatusCode::kNotFound,
+-                        absl::StrCat("Could not find", filename));
+-  } else if (S_ISREG(status.st_mode) == 0) {
+-    return absl::Status(absl::StatusCode::kFailedPrecondition,
+-                        absl::StrCat("File is not regular", filename));
+-  }
+-
+-  std::ifstream stream(std::string(filename), std::ifstream::in);
++  std::ifstream stream(std::string(filename), std::ifstream::in | std::ifstream::binary);
+   if (!stream) {
+     // Could be a wider range of reasons.
+     return absl::Status(absl::StatusCode::kNotFound,
+@@ -145,16 +133,16 @@ class RegisteredTempFile {
+     std::string filename_str;
+     struct stat file_stat;
+     if (!NullFreeString(filename_, &filename_str).ok()) {
+-      FILE_BASED_TEST_DRIVER_LOG(FATAL)
++      LOG(FATAL)
+           << "RegisteredTempFile: Illegal filename contains null characters: "
+           << filename_;
+     }
+     if (stat(filename_str.c_str(), &file_stat) != 0) {
+-      // FILE_BASED_TEST_DRIVER_LOG(FATAL) << "RegisteredTempFile: File already exists: " <<
++      // LOG(FATAL) << "RegisteredTempFile: File already exists: " <<
+       // filename_str;
+     }
+     if (absl::Status s = SetContents(filename_str, contents); !s.ok()) {
+-      FILE_BASED_TEST_DRIVER_LOG(FATAL) << "RegisteredTempFile: Unable to set contents: " << s;
++      LOG(FATAL) << "RegisteredTempFile: Unable to set contents: " << s;
+     }
+     should_delete_ = true;
+   }
+@@ -171,57 +159,6 @@ class RegisteredTempFile {
+   bool should_delete_;
+ };
+ 
+-inline absl::Status RecursivelyCreateDir(absl::string_view dirname) {
+-  if (dirname.empty()) {
+-    return absl::Status(absl::StatusCode::kInvalidArgument,
+-                        "Failed to create directory with empty name");
+-  } else if (dirname == "/") {
+-    // Assume the root directory always exists
+-    return absl::OkStatus();
+-  }
+-
+-  // Because we are using a c api, check for in-string nulls.
+-  std::string dirname_str;
+-  if (absl::Status status = NullFreeString(dirname, &dirname_str);
+-      !status.ok()) {
+-    return status;
+-  }
+-
+-  struct stat status;
+-  if (stat(dirname_str.c_str(), &status) == 0) {
+-    // File exists ...
+-    if (S_ISDIR(status.st_mode)) {
+-      // ... and it is a directory, great!
+-      return absl::OkStatus();
+-    } else {
+-      // ... but it is not a directory, bad.
+-      return absl::Status(absl::StatusCode::kFailedPrecondition,
+-                          absl::StrCat("Could not find: ", dirname));
+-    }
+-  }
+-
+-  absl::string_view parent =
+-      file_based_test_driver_base::SplitPath(dirname).first;
+-  absl::Status parent_status = RecursivelyCreateDir(parent);
+-  if (!parent_status.ok()) {
+-    return parent_status;
+-  }
+-
+-  if (mkdir(dirname_str.data(), /*mode=*/S_IRWXU | S_IRWXG | S_IRWXO) == 0) {
+-    return absl::OkStatus();
+-  }
+-  const int mkdir_errno = errno;
+-  if (mkdir_errno == EPERM || mkdir_errno == EACCES) {
+-    return absl::Status(
+-        absl::StatusCode::kPermissionDenied,
+-        absl::StrCat("Failed to create directory due to permissions: ",
+-                     dirname));
+-  }
+-  return absl::Status(absl::StatusCode::kInvalidArgument,
+-                      absl::StrCat("Failed to create directory : ", dirname,
+-                                   " errno=", strerror(mkdir_errno)));
+-}
+-
+ inline std::vector<std::string> FileLines(absl::string_view filepath) {
+   std::string contents;
+   if (GetContents(filepath, &contents).ok()) {
+diff --git a/file_based_test_driver/base/file_util_oss_test.cc b/file_based_test_driver/base/file_util_oss_test.cc
+index 1de9edf..44d291f 100644
+--- a/file_based_test_driver/base/file_util_oss_test.cc
++++ b/file_based_test_driver/base/file_util_oss_test.cc
+@@ -172,7 +172,7 @@ TEST(FileUtilTest, RecursivelyCreateDirFailsOnReadOnlyDir) {
+   const std::string read_only_dir =
+       absl::StrCat(TestTmpDir(), "/RecursivelyCreateDirReadOnlyDir");
+   // Create a read-only parent
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(0, mkdir(read_only_dir.c_str(),
++  CHECK_EQ(0, mkdir(read_only_dir.c_str(),
+                     /*mode=*/S_IRUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IROTH |
+                         S_IXOTH));
+   const std::string filespec =
+@@ -183,7 +183,7 @@ TEST(FileUtilTest, RecursivelyCreateDirFailsOnReadOnlyDir) {
+   EXPECT_FALSE(DirectoryExists(filespec));
+   // Make sure to mark the directory writable so the build system can
+   // clean it up afterward.
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(0,
++  CHECK_EQ(0,
+            chmod(read_only_dir.c_str(), /*mode=*/S_IRWXU | S_IRWXG | S_IRWXO));
+ }
+ 
+diff --git a/file_based_test_driver/base/lcs-inl.h b/file_based_test_driver/base/lcs-inl.h
+index 2c3c86c..dc0ca14 100644
+--- a/file_based_test_driver/base/lcs-inl.h
++++ b/file_based_test_driver/base/lcs-inl.h
+@@ -26,7 +26,7 @@
+ #include <utility>
+ #include <vector>
+ 
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "absl/container/node_hash_map.h"
+ 
+ // This module implements the longest common subsequence problem for
+@@ -217,9 +217,9 @@ template <class Container,
+   }
+   // Since all BackPointer sequences end at our toy (-2, -2) pair, we've
+   // already emitted the last matched region.
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(last_match_left, -2);
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(last_match_right, -2);
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(match_length, 1);
++  CHECK_EQ(last_match_left, -2);
++  CHECK_EQ(last_match_right, -2);
++  CHECK_EQ(match_length, 1);
+ 
+   // Cleanup - Unref the last references we hold.
+   for (int i = 0; i < array.size(); ++i) {
+diff --git a/file_based_test_driver/base/lcs_hunt.h b/file_based_test_driver/base/lcs_hunt.h
+index 6bfd888..1c355bb 100644
+--- a/file_based_test_driver/base/lcs_hunt.h
++++ b/file_based_test_driver/base/lcs_hunt.h
+@@ -26,7 +26,7 @@
+ #include <iterator>
+ #include <vector>
+ 
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "file_based_test_driver/base/lcs.h"
+ #include "file_based_test_driver/base/lcs_util.h"
+ 
+diff --git a/file_based_test_driver/base/lcs_hybrid.cc b/file_based_test_driver/base/lcs_hybrid.cc
+index ce48aa7..850d4e3 100644
+--- a/file_based_test_driver/base/lcs_hybrid.cc
++++ b/file_based_test_driver/base/lcs_hybrid.cc
+@@ -18,7 +18,8 @@
+ 
+ #include <algorithm>
+ 
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/check.h"
++#include "absl/log/log.h"
+ #include <cstdint>
+ #include "file_based_test_driver/base/lcs.h"
+ #include "file_based_test_driver/base/lcs_hunt.h"
+@@ -53,7 +54,7 @@ void LcsStats::DiffBounds(int* lower_bound, int* upper_bound) const {
+   // Just transform the length of longest common subsequence to the difference.
+   *upper_bound = left_size_ + right_size_ - lcs_lower * 2;
+   *lower_bound = left_size_ + right_size_ - lcs_upper * 2;
+-  FILE_BASED_TEST_DRIVER_CHECK_LE(*lower_bound, *upper_bound);
++  CHECK_LE(*lower_bound, *upper_bound);
+ }
+ 
+ static float sqr(float a) {
+diff --git a/file_based_test_driver/base/lcs_hybrid.h b/file_based_test_driver/base/lcs_hybrid.h
+index 9a97a59..8e2613d 100644
+--- a/file_based_test_driver/base/lcs_hybrid.h
++++ b/file_based_test_driver/base/lcs_hybrid.h
+@@ -25,7 +25,8 @@
+ #include <algorithm>
+ #include <vector>
+ 
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/check.h"
++#include "absl/log/log.h"
+ #include <cstdint>
+ #include "file_based_test_driver/base/lcs.h"
+ #include "file_based_test_driver/base/lcs_hunt.h"
+@@ -295,7 +296,7 @@ int LcsHybrid<ItemT>::RunHybrid(
+     int b = Run(left + split_x, left_size - split_x, left_offset + split_x,
+                 right + split_y, right_size - split_y, right_offset + split_y,
+                 chunks);
+-    FILE_BASED_TEST_DRIVER_DCHECK(a + b == lcs);
++    DCHECK(a + b == lcs);
+   }
+   return lcs;
+ }
+diff --git a/file_based_test_driver/base/lcs_test.cc b/file_based_test_driver/base/lcs_test.cc
+index 7ec4c43..130edda 100644
+--- a/file_based_test_driver/base/lcs_test.cc
++++ b/file_based_test_driver/base/lcs_test.cc
+@@ -21,7 +21,7 @@
+ #include <string>
+ #include <vector>
+ 
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "gtest/gtest.h"
+ #include "absl/random/random.h"
+ #include "absl/strings/string_view.h"
+@@ -92,8 +92,8 @@ class LcsListTest : public testing::Test {
+     int len = lcs_.Run(left_int_, right_int_, &chunks);
+     // and verify it.
+     // Only "line 2" is common to both ==> one chunk and lcs is 1.
+-    FILE_BASED_TEST_DRIVER_CHECK_EQ(1, len);
+-    FILE_BASED_TEST_DRIVER_CHECK_EQ(1, chunks.size());
++    CHECK_EQ(1, len);
++    CHECK_EQ(1, chunks.size());
+   }
+ 
+  protected:
+@@ -126,17 +126,17 @@ TEST(Lcs, RunWithString) {
+   Lcs lcs;
+   std::vector<Chunk> chunks;
+   int len = lcs.Run(kLeft, kRight, &chunks);
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(2, chunks.size());
++  CHECK_EQ(2, chunks.size());
+   absl::string_view common_string1("this is the ");
+   absl::string_view common_string2("t string");
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(common_string1.size() + common_string2.size(), len);
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(common_string1,
++  CHECK_EQ(common_string1.size() + common_string2.size(), len);
++  CHECK_EQ(common_string1,
+            absl::string_view(kLeft + chunks[0].left, chunks[0].length));
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(common_string1,
++  CHECK_EQ(common_string1,
+            absl::string_view(kRight + chunks[0].right, chunks[0].length));
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(common_string2,
++  CHECK_EQ(common_string2,
+            absl::string_view(kLeft + chunks[1].left, chunks[1].length));
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(common_string2,
++  CHECK_EQ(common_string2,
+            absl::string_view(kRight + chunks[1].right, chunks[1].length));
+ }
+ 
+@@ -159,12 +159,12 @@ TEST(Lcs, RunWithVectorAsVector) {
+   Lcs lcs;
+   std::vector<Chunk> chunks;
+   int len = lcs.Run(left, right, &chunks);
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(2, chunks.size());
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(5, len);
++  CHECK_EQ(2, chunks.size());
++  CHECK_EQ(5, len);
+   for (Chunk& chunk : chunks) {
+-    FILE_BASED_TEST_DRIVER_CHECK_NE(0, chunk.length);
++    CHECK_NE(0, chunk.length);
+     for (int i = chunk.left; i < chunk.length; i++) {
+-      FILE_BASED_TEST_DRIVER_CHECK_EQ(right[chunk.right], left[chunk.left]);
++      CHECK_EQ(right[chunk.right], left[chunk.left]);
+     }
+   }
+ }
+@@ -177,12 +177,12 @@ TEST(Lcs, RunWithVectorAsPointer) {
+   std::vector<Chunk> chunks;
+   int len =
+       lcs.Run(left.data(), left.size(), right.data(), right.size(), &chunks);
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(2, chunks.size());
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(5, len);
++  CHECK_EQ(2, chunks.size());
++  CHECK_EQ(5, len);
+   for (Chunk& chunk : chunks) {
+-    FILE_BASED_TEST_DRIVER_CHECK_NE(0, chunk.length);
++    CHECK_NE(0, chunk.length);
+     for (int i = chunk.left; i < chunk.length; i++) {
+-      FILE_BASED_TEST_DRIVER_CHECK_EQ(right[chunk.right], left[chunk.left]);
++      CHECK_EQ(right[chunk.right], left[chunk.left]);
+     }
+   }
+ }
+diff --git a/file_based_test_driver/base/logging.cc b/file_based_test_driver/base/logging.cc
+index 29a8abd..990d1eb 100644
+--- a/file_based_test_driver/base/logging.cc
++++ b/file_based_test_driver/base/logging.cc
+@@ -16,7 +16,7 @@
+ // limitations under the License.
+ //
+ 
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ 
+ #include <errno.h>
+ #include <fcntl.h>
+diff --git a/file_based_test_driver/base/logging.h b/file_based_test_driver/base/logging.h
+index 7dc7be9..edbf7c6 100644
+--- a/file_based_test_driver/base/logging.h
++++ b/file_based_test_driver/base/logging.h
+@@ -62,33 +62,33 @@
+ 
+ // Creates a message and logs it to file.
+ //
+-// FILE_BASED_TEST_DRIVER_LOG(severity) returns a stream object that can be written to with the <<
++// LOG(severity) returns a stream object that can be written to with the <<
+ // operator. Log messages are emitted with terminating newlines.
+ // Example:
+-//   FILE_BASED_TEST_DRIVER_LOG(INFO) << "Found" << num_cookies << " cookies";
++//   LOG(INFO) << "Found" << num_cookies << " cookies";
+ //
+ // severity: the severity of the log message, one of LogSeverity. The
+ //           FATAL severity will terminate the program after the log is emitted.
+ //           Must be exactly one of INFO WARNING ERROR FATAL QFATAL DFATAL
+-#define FILE_BASED_TEST_DRIVER_LOG(severity) \
++#define LOG(severity) \
+   FILE_BASED_TEST_DRIVER_INTERNAL_LOGGING_##severity.stream()
+ 
+-// A command to FILE_BASED_TEST_DRIVER_LOG only if a condition is true. If the condition is false,
++// A command to LOG only if a condition is true. If the condition is false,
+ // nothing is logged.
+ // Example:
+ //
+-// FILE_BASED_TEST_DRIVER_LOG_IF(INFO, num_cookies > 10) << "Got lots of cookies";
++// LOG_IF(INFO, num_cookies > 10) << "Got lots of cookies";
+ //
+ // severity: the severity of the log message, one of LogSeverity. The
+ //           FATAL severity will terminate the program after the log is emitted.
+ // condition: the condition that determines whether to log the message.
+-#define FILE_BASED_TEST_DRIVER_LOG_IF(severity, condition)                     \
++#define LOG_IF(severity, condition)                     \
+   !(condition)                                                                 \
+       ? (void)0                                                                \
+       : ::file_based_test_driver_base::logging_internal::LogMessageVoidify() & \
+             FILE_BASED_TEST_DRIVER_INTERNAL_LOGGING_##severity.stream()
+ 
+-// A FILE_BASED_TEST_DRIVER_LOG command with an associated verbosity level. The verbosity threshold
++// A LOG command with an associated verbosity level. The verbosity threshold
+ // may be configured at runtime with set_vlog_level and InitLogging.
+ //
+ // FILE_BASED_TEST_DRIVER_VLOG statements are logged at INFO severity if they are logged at all.
+@@ -99,20 +99,20 @@
+ //
+ // level: the numeric level that determines whether to log the message.
+ #define FILE_BASED_TEST_DRIVER_VLOG(level) \
+-  FILE_BASED_TEST_DRIVER_LOG_IF(           \
++  LOG_IF(           \
+       INFO, (level) <= ::file_based_test_driver_base::get_vlog_level())
+ 
+ // Terminates the program with a fatal error if the specified condition is
+ // false.
+ //
+ // Example:
+-//   FILE_BASED_TEST_DRIVER_CHECK(!cheese.empty()) << "Out of Cheese";
++//   CHECK(!cheese.empty()) << "Out of Cheese";
+ //
+ //
+ // Might produce a message like:
+ //   "Check_failed: !cheese.empty() Out of Cheese"
+-#define FILE_BASED_TEST_DRIVER_CHECK(condition)      \
+-  FILE_BASED_TEST_DRIVER_LOG_IF(FATAL, !(condition)) \
++#define CHECK(condition)      \
++  LOG_IF(FATAL, !(condition)) \
+       << ("Check failed: " #condition " ")
+ 
+ namespace file_based_test_driver_base {
+@@ -203,7 +203,7 @@ DEFINE_CHECK_OP_IMPL(Check_GT, >)
+ 
+ // Function is overloaded for integral types to allow static const
+ // integrals declared in classes and not defined to be used as arguments to
+-// FILE_BASED_TEST_DRIVER_CHECK* macros. It's not encouraged though.
++// CHECK* macros. It's not encouraged though.
+ template <typename T>
+ inline const T &GetReferenceableValue(const T &t) {
+   return t;
+@@ -230,7 +230,7 @@ inline unsigned long long GetReferenceableValue(unsigned long long t) {
+   return t;
+ }
+ 
+-// Compares val1 and val2 with op, and produces a FILE_BASED_TEST_DRIVER_LOG(FATAL) if false.
++// Compares val1 and val2 with op, and produces a LOG(FATAL) if false.
+ //
+ // name An identifier that is the name of the comparison, such as
+ //        Check_EQ or Check_NE.
+@@ -247,41 +247,41 @@ inline unsigned long long GetReferenceableValue(unsigned long long t) {
+       __FILE__, __LINE__, *_result)                                           \
+       .stream()
+ 
+-// Produces a FILE_BASED_TEST_DRIVER_LOG(FATAL) unless val1 equals val2.
+-#define FILE_BASED_TEST_DRIVER_CHECK_EQ(val1, val2) \
++// Produces a LOG(FATAL) unless val1 equals val2.
++#define CHECK_EQ(val1, val2) \
+   FILE_BASED_TEST_DRIVER_INTERNAL_CHECK_OP(Check_EQ, ==, val1, val2)
+-// Produces a FILE_BASED_TEST_DRIVER_LOG(FATAL) unless val1 does not equal to val2.
+-#define FILE_BASED_TEST_DRIVER_CHECK_NE(val1, val2) \
++// Produces a LOG(FATAL) unless val1 does not equal to val2.
++#define CHECK_NE(val1, val2) \
+   FILE_BASED_TEST_DRIVER_INTERNAL_CHECK_OP(Check_NE, !=, val1, val2)
+-// Produces a FILE_BASED_TEST_DRIVER_LOG(FATAL) unless val1 is less than or equal to val2.
+-#define FILE_BASED_TEST_DRIVER_CHECK_LE(val1, val2) \
++// Produces a LOG(FATAL) unless val1 is less than or equal to val2.
++#define CHECK_LE(val1, val2) \
+   FILE_BASED_TEST_DRIVER_INTERNAL_CHECK_OP(Check_LE, <=, val1, val2)
+-// Produces a FILE_BASED_TEST_DRIVER_LOG(FATAL) unless val1 is less than val2.
+-#define FILE_BASED_TEST_DRIVER_CHECK_LT(val1, val2) \
++// Produces a LOG(FATAL) unless val1 is less than val2.
++#define CHECK_LT(val1, val2) \
+   FILE_BASED_TEST_DRIVER_INTERNAL_CHECK_OP(Check_LT, <, val1, val2)
+-// Produces a FILE_BASED_TEST_DRIVER_LOG(FATAL) unless val1 is greater than or equal to val2.
+-#define FILE_BASED_TEST_DRIVER_CHECK_GE(val1, val2) \
++// Produces a LOG(FATAL) unless val1 is greater than or equal to val2.
++#define CHECK_GE(val1, val2) \
+   FILE_BASED_TEST_DRIVER_INTERNAL_CHECK_OP(Check_GE, >=, val1, val2)
+-// Produces a FILE_BASED_TEST_DRIVER_LOG(FATAL) unless val1 is greater than val2.
+-#define FILE_BASED_TEST_DRIVER_CHECK_GT(val1, val2) \
++// Produces a LOG(FATAL) unless val1 is greater than val2.
++#define CHECK_GT(val1, val2) \
+   FILE_BASED_TEST_DRIVER_INTERNAL_CHECK_OP(Check_GT, >, val1, val2)
+ 
+-#define FILE_BASED_TEST_DRIVER_DCHECK(c) FILE_BASED_TEST_DRIVER_CHECK(c)
++#define DCHECK(c) CHECK(c)
+ 
+-#define FILE_BASED_TEST_DRIVER_DCHECK_EQ(a, b) \
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(a, b)
+-#define FILE_BASED_TEST_DRIVER_DCHECK_NE(a, b) \
+-  FILE_BASED_TEST_DRIVER_CHECK_NE(a, b)
+-#define FILE_BASED_TEST_DRIVER_DCHECK_LE(a, b) \
+-  FILE_BASED_TEST_DRIVER_CHECK_LE(a, b)
+-#define FILE_BASED_TEST_DRIVER_DCHECK_LT(a, b) \
+-  FILE_BASED_TEST_DRIVER_CHECK_LT(a, b)
+-#define FILE_BASED_TEST_DRIVER_DCHECK_GE(a, b) \
+-  FILE_BASED_TEST_DRIVER_CHECK_GE(a, b)
+-#define FILE_BASED_TEST_DRIVER_DCHECK_GT(a, b) \
+-  FILE_BASED_TEST_DRIVER_CHECK_GT(a, b)
++#define DCHECK_EQ(a, b) \
++  CHECK_EQ(a, b)
++#define DCHECK_NE(a, b) \
++  CHECK_NE(a, b)
++#define DCHECK_LE(a, b) \
++  CHECK_LE(a, b)
++#define DCHECK_LT(a, b) \
++  CHECK_LT(a, b)
++#define DCHECK_GE(a, b) \
++  CHECK_GE(a, b)
++#define DCHECK_GT(a, b) \
++  CHECK_GT(a, b)
+ 
+-#define FILE_BASED_TEST_DRIVER_DLOG(c) FILE_BASED_TEST_DRIVER_LOG(c)
++#define FILE_BASED_TEST_DRIVER_DLOG(c) LOG(c)
+ 
+ // Gets the verbosity threshold for FILE_BASED_TEST_DRIVER_VLOG. A FILE_BASED_TEST_DRIVER_VLOG command with a level greater
+ // than this will be ignored.
+@@ -352,7 +352,7 @@ class LogMessage {
+ };
+ 
+ // This class is used just to take an ostream type and make it a void type to
+-// satisfy the ternary operator in FILE_BASED_TEST_DRIVER_LOG_IF.
++// satisfy the ternary operator in LOG_IF.
+ // operator& is used because it has precedence lower than << but higher than :?
+ class LogMessageVoidify {
+  public:
+@@ -370,7 +370,7 @@ class LogMessageFatal : public LogMessage {
+   LogMessageFatal(const char *file, int line)
+     : LogMessage(file, line, absl::LogSeverity::kFatal) {}
+ 
+-  // Constructs a message with FATAL severity for use by FILE_BASED_TEST_DRIVER_CHECK macros.
++  // Constructs a message with FATAL severity for use by CHECK macros.
+   //
+   // file: source file that produced the log.
+   // line: source code line that produced the log.
+@@ -380,7 +380,7 @@ class LogMessageFatal : public LogMessage {
+ 
+   // Suppresses warnings in some cases, example:
+   // if (impossible)
+-  //   FILE_BASED_TEST_DRIVER_LOG(FATAL)
++  //   LOG(FATAL)
+   // else
+   //   return 0;
+   // which would otherwise yield the following compiler warning.
+diff --git a/file_based_test_driver/base/map_util.h b/file_based_test_driver/base/map_util.h
+index 141f097..0b9a3c5 100644
+--- a/file_based_test_driver/base/map_util.h
++++ b/file_based_test_driver/base/map_util.h
+@@ -30,7 +30,7 @@
+ // - Lookup*()
+ //
+ // These functions often have "...OrDie" or "...OrDieNoPrint" variants. These
+-// variants will crash the process with a FILE_BASED_TEST_DRIVER_CHECK() failure on error, including
++// variants will crash the process with a CHECK() failure on error, including
+ // the offending key/data in the log message. The NoPrint variants will not
+ // include the key/data in the log output under the assumption that it's not a
+ // printable type.
+@@ -85,7 +85,7 @@
+ #include <vector>
+ 
+ #include "absl/meta/type_traits.h"
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "file_based_test_driver/base/map_traits.h"
+ #include "file_based_test_driver/base/no_destructor.h"
+ 
+@@ -159,7 +159,7 @@ using MapUtilInitT = typename internal_map_util::InitType<M>::type;
+ template <typename M>
+ const MapUtilMappedT<M>& FindOrDie(const M& m, const MapUtilKeyT<M>& key) {
+   auto it = m.find(key);
+-  FILE_BASED_TEST_DRIVER_CHECK(it != m.end()) << "Map key not found: " << key;
++  CHECK(it != m.end()) << "Map key not found: " << key;
+   return file_based_test_driver_base::subtle::GetMapped(*it);
+ }
+ 
+@@ -168,7 +168,7 @@ template <typename M>
+ MapUtilMappedT<M>& FindOrDie(M& m,  // NOLINT
+                              const MapUtilKeyT<M>& key) {
+   auto it = m.find(key);
+-  FILE_BASED_TEST_DRIVER_CHECK(it != m.end()) << "Map key not found: " << key;
++  CHECK(it != m.end()) << "Map key not found: " << key;
+   return file_based_test_driver_base::subtle::GetMapped(*it);
+ }
+ 
+@@ -177,7 +177,7 @@ template <typename M>
+ const MapUtilMappedT<M>& FindOrDieNoPrint(const M& m,
+                                           const MapUtilKeyT<M>& key) {
+   auto it = m.find(key);
+-  FILE_BASED_TEST_DRIVER_CHECK(it != m.end()) << "Map key not found";
++  CHECK(it != m.end()) << "Map key not found";
+   return file_based_test_driver_base::subtle::GetMapped(*it);
+ }
+ 
+@@ -186,7 +186,7 @@ template <typename M>
+ MapUtilMappedT<M>& FindOrDieNoPrint(M& m,  // NOLINT
+                                     const MapUtilKeyT<M>& key) {
+   auto it = m.find(key);
+-  FILE_BASED_TEST_DRIVER_CHECK(it != m.end()) << "Map key not found";
++  CHECK(it != m.end()) << "Map key not found";
+   return file_based_test_driver_base::subtle::GetMapped(*it);
+ }
+ 
+@@ -364,13 +364,13 @@ bool InsertIfNotPresent(M* m, const MapUtilKeyT<M>& key,
+ // Same as above except dies if the key already exists in the m.
+ template <typename M>
+ void InsertOrDie(M* m, const MapUtilInitT<M>& value) {
+-  FILE_BASED_TEST_DRIVER_CHECK(InsertIfNotPresent(m, value)) << "duplicate value: " << value;
++  CHECK(InsertIfNotPresent(m, value)) << "duplicate value: " << value;
+ }
+ 
+ // Same as above except doesn't log the value on error.
+ template <typename M>
+ void InsertOrDieNoPrint(M* m, const MapUtilInitT<M>& value) {
+-  FILE_BASED_TEST_DRIVER_CHECK(InsertIfNotPresent(m, value)) << "duplicate value.";
++  CHECK(InsertIfNotPresent(m, value)) << "duplicate value.";
+ }
+ 
+ // Inserts the key-value pair into the m. Dies if key was already
+@@ -378,14 +378,14 @@ void InsertOrDieNoPrint(M* m, const MapUtilInitT<M>& value) {
+ template <typename M>
+ void InsertOrDie(M* m, const MapUtilKeyT<M>& key,
+                  const MapUtilMappedT<M>& data) {
+-  FILE_BASED_TEST_DRIVER_CHECK(InsertIfNotPresent(m, key, data)) << "duplicate key: " << key;
++  CHECK(InsertIfNotPresent(m, key, data)) << "duplicate key: " << key;
+ }
+ 
+ // Same as above except doesn't log the key on error.
+ template <typename M>
+ void InsertOrDieNoPrint(M* m, const MapUtilKeyT<M>& key,
+                         const MapUtilMappedT<M>& data) {
+-  FILE_BASED_TEST_DRIVER_CHECK(InsertIfNotPresent(m, key, data)) << "duplicate key.";
++  CHECK(InsertIfNotPresent(m, key, data)) << "duplicate key.";
+ }
+ 
+ // Inserts a new key and default-initialized value. Dies if the key was already
+@@ -399,7 +399,7 @@ auto InsertKeyOrDie(M* m, const MapUtilKeyT<M>& key) ->
+     typename std::enable_if<internal_map_util::HasTryEmplace<M>::value,
+                             MapUtilMappedT<M>&>::type {
+   auto res = m->try_emplace(key);
+-  FILE_BASED_TEST_DRIVER_CHECK(res.second) << "duplicate key: " << key;
++  CHECK(res.second) << "duplicate key: " << key;
+   return file_based_test_driver_base::subtle::GetMapped(*res.first);
+ }
+ 
+@@ -409,7 +409,7 @@ auto InsertKeyOrDie(M* m, const MapUtilKeyT<M>& key) ->
+     typename std::enable_if<!internal_map_util::HasTryEmplace<M>::value,
+                             MapUtilMappedT<M>&>::type {
+   auto res = m->insert(MapUtilValueT<M>(key, MapUtilMappedT<M>()));
+-  FILE_BASED_TEST_DRIVER_CHECK(res.second) << "duplicate key: " << key;
++  CHECK(res.second) << "duplicate key: " << key;
+   return res.first->second;
+ }
+ 
+@@ -509,7 +509,7 @@ MapUtilMappedT<M>* InsertOrReturnExisting(M* m, const MapUtilKeyT<M>& key,
+ // inserted.
+ template <typename M, typename ReverseM>
+ bool ReverseMap(const M& m, ReverseM* reverse) {
+-  FILE_BASED_TEST_DRIVER_CHECK(reverse != nullptr);
++  CHECK(reverse != nullptr);
+   bool all_unique = true;
+   for (const auto& kv : m) {
+     if (!InsertOrUpdate(reverse, kv.second, kv.first)) {
+@@ -562,7 +562,7 @@ MapUtilMappedT<M> EraseKeyReturnValuePtr(M* m, const MapUtilKeyT<M>& key) {
+ // Note: any initial contents of the key_container are not cleared.
+ template <typename M, typename KeyContainer>
+ void InsertKeysFromMap(const M& m, KeyContainer* key_container) {
+-  FILE_BASED_TEST_DRIVER_CHECK(key_container != nullptr);
++  CHECK(key_container != nullptr);
+   for (const auto& kv : m) {
+     key_container->insert(kv.first);
+   }
+@@ -574,7 +574,7 @@ void InsertKeysFromMap(const M& m, KeyContainer* key_container) {
+ // Note: any initial contents of the key_container are not cleared.
+ template <typename M, typename KeyContainer>
+ void AppendKeysFromMap(const M& m, KeyContainer* key_container) {
+-  FILE_BASED_TEST_DRIVER_CHECK(key_container != nullptr);
++  CHECK(key_container != nullptr);
+   for (const auto& kv : m) {
+     key_container->push_back(kv.first);
+   }
+@@ -589,7 +589,7 @@ void AppendKeysFromMap(const M& m, KeyContainer* key_container) {
+ // without the complexity of a SFINAE-based solution.)
+ template <typename M, typename KeyType>
+ void AppendKeysFromMap(const M& m, std::vector<KeyType>* key_container) {
+-  FILE_BASED_TEST_DRIVER_CHECK(key_container != nullptr);
++  CHECK(key_container != nullptr);
+   // We now have the opportunity to call reserve(). Calling reserve() every
+   // time is a bad idea for some use cases: libstdc++'s implementation of
+   // std::vector<>::reserve() resizes the vector's backing store to exactly the
+@@ -613,7 +613,7 @@ void AppendKeysFromMap(const M& m, std::vector<KeyType>* key_container) {
+ // Note: any initial contents of the value_container are not cleared.
+ template <typename M, typename ValueContainer>
+ void AppendValuesFromMap(const M& m, ValueContainer* value_container) {
+-  FILE_BASED_TEST_DRIVER_CHECK(value_container != nullptr);
++  CHECK(value_container != nullptr);
+   for (const auto& kv : m) {
+     value_container->push_back(kv.second);
+   }
+@@ -628,7 +628,7 @@ void AppendValuesFromMap(const M& m, ValueContainer* value_container) {
+ // without the complexity of a SFINAE-based solution.)
+ template <typename M, typename ValueType>
+ void AppendValuesFromMap(const M& m, std::vector<ValueType>* value_container) {
+-  FILE_BASED_TEST_DRIVER_CHECK(value_container != nullptr);
++  CHECK(value_container != nullptr);
+   // See AppendKeysFromMap for why this is done.
+   if (value_container->empty()) {
+     value_container->reserve(m.size());
+@@ -646,7 +646,7 @@ void AppendValuesFromMap(const M& m, std::vector<ValueType>* value_container) {
+ template <typename M, typename Predicate>
+ auto AssociativeEraseIf(M* m, Predicate predicate) -> typename std::enable_if<
+     std::is_same<void, decltype(m->erase(m->begin()))>::value>::type {
+-  FILE_BASED_TEST_DRIVER_CHECK(m != nullptr);
++  CHECK(m != nullptr);
+   for (auto it = m->begin(); it != m->end();) {
+     if (predicate(*it)) {
+       m->erase(it++);
+@@ -660,7 +660,7 @@ template <typename M, typename Predicate>
+ auto AssociativeEraseIf(M* m, Predicate predicate) ->
+     typename std::enable_if<std::is_same<
+         decltype(m->begin()), decltype(m->erase(m->begin()))>::value>::type {
+-  FILE_BASED_TEST_DRIVER_CHECK(m != nullptr);
++  CHECK(m != nullptr);
+   for (auto it = m->begin(); it != m->end();) {
+     if (predicate(*it)) {
+       it = m->erase(it);
+diff --git a/file_based_test_driver/base/map_util_test.h b/file_based_test_driver/base/map_util_test.h
+index b655a2a..01d5b7b 100644
+--- a/file_based_test_driver/base/map_util_test.h
++++ b/file_based_test_driver/base/map_util_test.h
+@@ -25,7 +25,7 @@
+ #include <vector>
+ 
+ #include "gtest/gtest.h"
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "file_based_test_driver/base/map_util.h"
+ 
+ namespace file_based_test_driver_base {
+diff --git a/file_based_test_driver/base/map_util_unittest.cc b/file_based_test_driver/base/map_util_unittest.cc
+index 4fa1289..ebdc991 100644
+--- a/file_based_test_driver/base/map_util_unittest.cc
++++ b/file_based_test_driver/base/map_util_unittest.cc
+@@ -30,7 +30,7 @@
+ #include "gmock/gmock.h"
+ #include "gtest/gtest.h"
+ #include "absl/container/node_hash_map.h"
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ 
+ // All of the templates for the tests are defined here.
+ // This file is critical to understand what is tested.
+diff --git a/file_based_test_driver/base/no_destructor_test.cc b/file_based_test_driver/base/no_destructor_test.cc
+index 6a3d205..349e021 100644
+--- a/file_based_test_driver/base/no_destructor_test.cc
++++ b/file_based_test_driver/base/no_destructor_test.cc
+@@ -21,7 +21,7 @@
+ 
+ #include "gmock/gmock.h"
+ #include "gtest/gtest.h"
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ 
+ namespace file_based_test_driver_base {
+ namespace {
+@@ -41,7 +41,7 @@ struct Blob {
+ 
+   // no crash: NoDestructor indeed does not destruct (the moved-out Blob
+   // temporaries do get destroyed though)
+-  ~Blob() { FILE_BASED_TEST_DRIVER_CHECK(moved_out) << "~Blob"; }
++  ~Blob() { CHECK(moved_out) << "~Blob"; }
+ 
+   int val;
+   bool moved_out = false;
+diff --git a/file_based_test_driver/base/rediff.cc b/file_based_test_driver/base/rediff.cc
+index cf5677d..7c2c7d8 100644
+--- a/file_based_test_driver/base/rediff.cc
++++ b/file_based_test_driver/base/rediff.cc
+@@ -26,7 +26,8 @@
+ #include <utility>
+ #include <vector>
+ 
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/check.h"
++#include "absl/log/log.h"
+ #include <cstdint>
+ #include "absl/strings/str_format.h"
+ #include "absl/strings/string_view.h"
+@@ -68,7 +69,7 @@ static void WrapLCS2(const LcsOptions& options,
+ 
+   std::vector<Chunk> chunks;
+   int res = lcs.Run(left_int, right_int, &chunks);
+-  FILE_BASED_TEST_DRIVER_LOG_IF(WARNING, res < 0)
++  LOG_IF(WARNING, res < 0)
+       << "LCS returned with error code " << res << ".\n"
+       << "Rediff will only consider leading/trailing matches";
+   for (size_t i = 0; i < chunks.size(); i++)
+@@ -287,8 +288,8 @@ void ReDiff::DiffVectorsOfStringViews(
+ }
+ 
+ void ReDiff::Diff() {
+-  FILE_BASED_TEST_DRIVER_DCHECK_EQ(static_cast<int>(left_list_.size()), left_size_);
+-  FILE_BASED_TEST_DRIVER_DCHECK_EQ(static_cast<int>(right_list_.size()), right_size_);
++  DCHECK_EQ(static_cast<int>(left_list_.size()), left_size_);
++  DCHECK_EQ(static_cast<int>(right_list_.size()), right_size_);
+   left_matches_.clear();
+   right_matches_.clear();
+   for (int i = 0; i < left_size_; ++i) {
+@@ -795,7 +796,7 @@ void ReDiff::Chunkify(const std::vector<std::pair<MatchType, int> >& matches,
+       else if (last_type == UNMATCHED)
+         c.type = unmatched_type;
+       else
+-        FILE_BASED_TEST_DRIVER_LOG(FATAL) << "Invalid chunk type: " << last_type;
++        LOG(FATAL) << "Invalid chunk type: " << last_type;
+ 
+       // Start a new chunk here
+       first_index = last_index = i;
+@@ -875,7 +876,7 @@ void ReDiff::ConvertChunks(std::vector<DiffChunk>* left_chunks,
+     } else if (right_candidates[j].first == UNCHANGED) {
+       ++i;
+     } else {
+-      FILE_BASED_TEST_DRIVER_LOG(FATAL) << "Internal error converting add/remove chunks to changes.";
++      LOG(FATAL) << "Internal error converting add/remove chunks to changes.";
+     }
+   }
+ 
+@@ -912,7 +913,7 @@ void ReDiff::ConvertChunks(std::vector<DiffChunk>* left_chunks,
+         ++map_it;
+       } else if (map_it != chunks_to_add.end() &&
+                  map_it->first < static_cast<int>(j)) {
+-        FILE_BASED_TEST_DRIVER_LOG(FATAL) << "Internal error: missed chance to insert chunk at "
++        LOG(FATAL) << "Internal error: missed chance to insert chunk at "
+                    << map_it->first << " (current index = " << j << ")";
+       }
+       ++j;
+@@ -993,8 +994,8 @@ int ReDiff::index_of(int line_number, const std::vector<DiffChunk>& v) {
+   // Lower bound just gives us a lower bound where line_number could be
+   // inserted; we need to verify that the line number of this lower bound
+   // is exactly equal to the value we expect.
+-  FILE_BASED_TEST_DRIVER_CHECK(it != v.end()) << "index_of: entry not found.";
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(it->last_line, line_number) << "index_of: entry not found.";
++  CHECK(it != v.end()) << "index_of: entry not found.";
++  CHECK_EQ(it->last_line, line_number) << "index_of: entry not found.";
+   // Use iterator subtraction to determine the index.
+   return it - v.begin();
+ }
+diff --git a/file_based_test_driver/base/ret_check.cc b/file_based_test_driver/base/ret_check.cc
+index 406e30a..c0bd5ba 100644
+--- a/file_based_test_driver/base/ret_check.cc
++++ b/file_based_test_driver/base/ret_check.cc
+@@ -20,7 +20,7 @@
+ #include <string>
+ 
+ #include "absl/status/status.h"
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "file_based_test_driver/base/source_location.h"
+ #include "file_based_test_driver/base/status_builder.h"
+ 
+diff --git a/file_based_test_driver/base/ret_check.h b/file_based_test_driver/base/ret_check.h
+index 8df82d4..45f59fc 100644
+--- a/file_based_test_driver/base/ret_check.h
++++ b/file_based_test_driver/base/ret_check.h
+@@ -19,7 +19,7 @@
+ #define THIRD_PARTY_FILE_BASED_TEST_DRIVER_BASE_RET_CHECK_H_
+ 
+ // Macros for non-fatal assertions.  The `FILE_BASED_TEST_DRIVER_RET_CHECK`
+-// family of macros mirrors the `FILE_BASED_TEST_DRIVER_CHECK` family from "base/logging.h", but
++// family of macros mirrors the `CHECK` family from "base/logging.h", but
+ // instead of aborting the process on failure, these return a absl::Status with
+ // code `absl::StatusCode::kInternal` from the current method.
+ //
+@@ -30,7 +30,7 @@
+ //   an internal error";
+ //
+ // The FILE_BASED_TEST_DRIVER_RET_CHECK* macros can only be used in functions
+-// that return absl::Status or file_based_test_driver_base::StatusOr.  The
++// that return absl::Status or absl::StatusOr.  The
+ // generated `absl::Status` will contain the string
+ // "FILE_BASED_TEST_DRIVER_RET_CHECK failure".
+ //
+@@ -44,7 +44,7 @@
+ #include <string>
+ 
+ #include "absl/status/status.h"
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "file_based_test_driver/base/source_location.h"
+ #include "file_based_test_driver/base/status_builder.h"
+ #include "file_based_test_driver/base/status_macros.h"
+diff --git a/file_based_test_driver/base/status.h b/file_based_test_driver/base/status.h
+index 9f712a7..d91a354 100644
+--- a/file_based_test_driver/base/status.h
++++ b/file_based_test_driver/base/status.h
+@@ -20,8 +20,8 @@
+ 
+ #include "absl/status/status.h"  // IWYU pragma: export
+ 
+-// This is better than FILE_BASED_TEST_DRIVER_CHECK((val).ok()) because the embedded
+-// error string gets printed by the FILE_BASED_TEST_DRIVER_CHECK_EQ.
+-#define FILE_BASED_TEST_DRIVER_CHECK_OK(val) FILE_BASED_TEST_DRIVER_CHECK_EQ(::absl::OkStatus(), (val))
++// This is better than CHECK((val).ok()) because the embedded
++// error string gets printed by the CHECK_EQ.
++#define CHECK_OK(val) CHECK_EQ(::absl::OkStatus(), (val))
+ 
+ #endif  // THIRD_PARTY_FILE_BASED_TEST_DRIVER_BASE_STATUS_H_
+diff --git a/file_based_test_driver/base/status_builder.cc b/file_based_test_driver/base/status_builder.cc
+index 27e3840..b8145e4 100644
+--- a/file_based_test_driver/base/status_builder.cc
++++ b/file_based_test_driver/base/status_builder.cc
+@@ -22,7 +22,7 @@
+ 
+ #include "absl/status/status.h"
+ #include "absl/strings/str_cat.h"
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ 
+ namespace file_based_test_driver_base {
+ 
+@@ -72,6 +72,7 @@ absl::Status StatusBuilder::JoinMessageToStatus(absl::Status s,
+ void StatusBuilder::ConditionallyLog(const absl::Status& result) const {
+   if (rep_->logging_mode == Rep::LoggingMode::kDisabled) return;
+ 
++#if 0
+   absl::LogSeverity severity = rep_->log_severity;
+ 
+   file_based_test_driver_base::logging_internal::LogMessage log_message(
+@@ -80,6 +81,7 @@ void StatusBuilder::ConditionallyLog(const absl::Status& result) const {
+   if (rep_->should_log_stack_trace) {
+     log_message.stream() << "\n";
+   }
++#endif
+ }
+ 
+ absl::Status StatusBuilder::CreateStatusAndConditionallyLog() && {
+diff --git a/file_based_test_driver/base/status_builder.h b/file_based_test_driver/base/status_builder.h
+index 88c0d80..c6e4c9e 100644
+--- a/file_based_test_driver/base/status_builder.h
++++ b/file_based_test_driver/base/status_builder.h
+@@ -30,14 +30,14 @@
+ #include "absl/base/log_severity.h"
+ #include "absl/status/status.h"
+ #include "absl/strings/string_view.h"
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "file_based_test_driver/base/source_location.h"
+-#include "file_based_test_driver/base/statusor.h"
++#include "absl/status/statusor.h"
+ 
+ namespace file_based_test_driver_base {
+ 
+ // Creates a status based on an original_status, but enriched with additional
+-// information.  The builder implicitly converts to Status and StatusOr<T>
++// information.  The builder implicitly converts to Status and absl::StatusOr<T>
+ // allowing for it to be returned directly.
+ //
+ //   StatusBuilder builder(original, FILE_BASED_TEST_DRIVER_LOC);
+@@ -169,10 +169,10 @@ class ABSL_MUST_USE_RESULT StatusBuilder {
+   operator absl::Status() &&;
+ 
+   template <typename T>
+-  operator StatusOr<T>() const&;  // NOLINT
++  operator absl::StatusOr<T>() const&;  // NOLINT
+ 
+   template <typename T>
+-  operator StatusOr<T>() &&;  // NOLINT
++  operator absl::StatusOr<T>() &&;  // NOLINT
+ 
+   // Returns the source location used to create this builder.
+   file_based_test_driver_base::SourceLocation source_location() const;
+@@ -396,13 +396,13 @@ inline StatusBuilder::operator absl::Status() && {
+ };
+ 
+ template <typename T>
+-inline StatusBuilder::operator StatusOr<T>() const& {
+-  if (rep_ == nullptr) return StatusOr<T>(status_);
+-  return StatusOr<T>(StatusBuilder(*this).CreateStatusAndConditionallyLog());
++inline StatusBuilder::operator absl::StatusOr<T>() const& {
++  if (rep_ == nullptr) return absl::StatusOr<T>(status_);
++  return absl::StatusOr<T>(StatusBuilder(*this).CreateStatusAndConditionallyLog());
+ }
+ 
+ template <typename T>
+-inline StatusBuilder::operator StatusOr<T>() && {
++inline StatusBuilder::operator absl::StatusOr<T>() && {
+   if (rep_ == nullptr) return std::move(status_);
+   return std::move(*this).CreateStatusAndConditionallyLog();
+ }
+diff --git a/file_based_test_driver/base/status_builder_test.cc b/file_based_test_driver/base/status_builder_test.cc
+index 3c94ef7..90bb7da 100644
+--- a/file_based_test_driver/base/status_builder_test.cc
++++ b/file_based_test_driver/base/status_builder_test.cc
+@@ -26,7 +26,7 @@
+ #include "absl/strings/str_cat.h"
+ #include "file_based_test_driver/base/source_location.h"
+ #include "file_based_test_driver/base/status_matchers_oss.h"
+-#include "file_based_test_driver/base/statusor.h"
++#include "absl/status/statusor.h"
+ 
+ namespace file_based_test_driver_base {
+ namespace {
+diff --git a/file_based_test_driver/base/status_macros.h b/file_based_test_driver/base/status_macros.h
+index 7f9b057..9805276 100644
+--- a/file_based_test_driver/base/status_macros.h
++++ b/file_based_test_driver/base/status_macros.h
+@@ -66,7 +66,7 @@
+     return status_macro_internal_adaptor.Consume()
+ 
+ // Executes an expression `rexpr` that returns a
+-// `file_based_test_driver_base::StatusOr<T>`. On OK, extracts its value into
++// `absl::StatusOr<T>`. On OK, extracts its value into
+ // the variable defined by `lhs`, otherwise returns from the current function.
+ // By default the error status is returned unchanged, but it may be modified by
+ // an `error_expression`. If there is an error, `lhs` is not evaluated; thus any
+diff --git a/file_based_test_driver/base/status_macros_test.cc b/file_based_test_driver/base/status_macros_test.cc
+index d05b8d2..74086bf 100644
+--- a/file_based_test_driver/base/status_macros_test.cc
++++ b/file_based_test_driver/base/status_macros_test.cc
+@@ -27,7 +27,7 @@
+ #include "absl/strings/string_view.h"
+ #include "file_based_test_driver/base/source_location.h"
+ #include "file_based_test_driver/base/status_builder.h"
+-#include "file_based_test_driver/base/statusor.h"
++#include "absl/status/statusor.h"
+ 
+ namespace {
+ 
+@@ -53,16 +53,16 @@ file_based_test_driver_base::StatusBuilder ReturnErrorBuilder(
+       FILE_BASED_TEST_DRIVER_LOC);
+ }
+ 
+-file_based_test_driver_base::StatusOr<int> ReturnStatusOrValue(int v) {
++absl::StatusOr<int> ReturnStatusOrValue(int v) {
+   return v;
+ }
+ 
+-file_based_test_driver_base::StatusOr<int> ReturnStatusOrError(
++absl::StatusOr<int> ReturnStatusOrError(
+     absl::string_view msg) {
+   return absl::Status(absl::StatusCode::kUnknown, msg);
+ }
+ 
+-file_based_test_driver_base::StatusOr<std::unique_ptr<int>>
++absl::StatusOr<std::unique_ptr<int>>
+ ReturnStatusOrPtrValue(int v) {
+   return absl::make_unique<int>(v);
+ }
+diff --git a/file_based_test_driver/base/status_matchers_oss.h b/file_based_test_driver/base/status_matchers_oss.h
+index 5af03c4..954d178 100644
+--- a/file_based_test_driver/base/status_matchers_oss.h
++++ b/file_based_test_driver/base/status_matchers_oss.h
+@@ -19,7 +19,7 @@
+ #define THIRD_PARTY_FILE_BASED_TEST_DRIVER_BASE_STATUS_MATCHERS_OSS_H_
+ 
+ // Testing utilities for working with ::absl::Status and
+-// ::file_based_test_driver_base::StatusOr.
++// ::absl::StatusOr.
+ //
+ //
+ // Defines the following utilities:
+@@ -71,7 +71,7 @@
+ //     using ::testing::Ne;
+ //     using ::file_based_test_driver_base::testing::StatusIs;
+ //     using ::testing::_;
+-//     using ::file_based_test_driver_base::StatusOr;
++//     using ::absl::StatusOr;
+ //     StatusOr<std::string> GetName(int id);
+ //     ...
+ //
+@@ -103,7 +103,7 @@
+ //   IsOk()
+ //   ===============
+ //
+-//   Matches a absl::Status or file_based_test_driver_base::StatusOr<T> value
++//   Matches a absl::Status or absl::StatusOr<T> value
+ //   whose status value is StatusCode::kOK.
+ //   Equivalent to 'StatusIs(StatusCode::kOK)'.
+ //   Example:
+@@ -127,7 +127,7 @@
+ #include "file_based_test_driver/base/source_location.h"
+ #include "file_based_test_driver/base/status_builder.h"
+ #include "file_based_test_driver/base/status_macros.h"
+-#include "file_based_test_driver/base/statusor.h"
++#include "absl/status/statusor.h"
+ 
+ namespace file_based_test_driver {
+ namespace testing {
+@@ -139,7 +139,7 @@ inline const absl::Status& GetStatus(const absl::Status& status) {
+ 
+ template <typename T>
+ inline const absl::Status& GetStatus(
+-    const ::file_based_test_driver_base::StatusOr<T>& status) {
++    const ::absl::StatusOr<T>& status) {
+   return status.status();
+ }
+ 
+@@ -316,13 +316,13 @@ void AddFatalFailure(
+ }  // namespace internal_status
+ 
+ // Macros for testing the results of functions that return absl::Status or
+-// file_based_test_driver_base::StatusOr<T> (for any type T).
++// absl::StatusOr<T> (for any type T).
+ #define FILE_BASED_TEST_DRIVER_EXPECT_OK(expression) \
+   EXPECT_THAT(expression, ::file_based_test_driver::testing::IsOk())
+ #define FILE_BASED_TEST_DRIVER_ASSERT_OK(expression) \
+   ASSERT_THAT(expression, ::file_based_test_driver::testing::IsOk())
+ 
+-// Executes an expression that returns a file_based_test_driver_base::StatusOr,
++// Executes an expression that returns a absl::StatusOr,
+ // and assigns the contained variable to lhs if the error code is OK. If the
+ // Status is non-OK, generates a test failure and returns from the current
+ // function, which must have a void return type.
+diff --git a/file_based_test_driver/base/status_matchers_oss_test.cc b/file_based_test_driver/base/status_matchers_oss_test.cc
+index ce8feee..1f254e4 100644
+--- a/file_based_test_driver/base/status_matchers_oss_test.cc
++++ b/file_based_test_driver/base/status_matchers_oss_test.cc
+@@ -20,7 +20,7 @@
+ #include "gmock/gmock.h"
+ #include "gtest/gtest.h"
+ #include "file_based_test_driver/base/status_macros.h"
+-#include "file_based_test_driver/base/statusor.h"
++#include "absl/status/statusor.h"
+ 
+ namespace {
+ 
+@@ -34,9 +34,9 @@ absl::Status AbortedStatus() {
+   return absl::Status(absl::StatusCode::kAborted, "aborted");
+ }
+ 
+-file_based_test_driver_base::StatusOr<int> OkStatusOr(int n) { return n; }
++absl::StatusOr<int> OkStatusOr(int n) { return n; }
+ 
+-file_based_test_driver_base::StatusOr<int> AbortedStatusOr() {
++absl::StatusOr<int> AbortedStatusOr() {
+   return AbortedStatus();
+ }
+ 
+diff --git a/file_based_test_driver/base/statusor.cc b/file_based_test_driver/base/statusor.cc
+index a5186a5..7cf5b2a 100644
+--- a/file_based_test_driver/base/statusor.cc
++++ b/file_based_test_driver/base/statusor.cc
+@@ -15,12 +15,12 @@
+ // limitations under the License.
+ //
+ 
+-#include "file_based_test_driver/base/statusor.h"
++#include "absl/status/statusor.h"
+ 
+ #include <ostream>
+ 
+ #include "absl/status/status.h"
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ 
+ namespace file_based_test_driver_base {
+ 
+@@ -29,15 +29,15 @@ namespace statusor_internal {
+ void Helper::HandleInvalidStatusCtorArg(absl::Status* status) {
+   const char* kMessage =
+       "An OK status is not a valid constructor argument to StatusOr<T>";
+-  FILE_BASED_TEST_DRIVER_LOG(DFATAL) << kMessage;
++  LOG(DFATAL) << kMessage;
+   // In optimized builds, we will fall back to absl::INTERNAL.
+   *status = absl::InternalError(kMessage);
+ }
+ 
+ void Helper::Crash(const absl::Status& status) {
+-  FILE_BASED_TEST_DRIVER_LOG(FATAL) << "Attempting to fetch value instead of handling error "
++  LOG(FATAL) << "Attempting to fetch value instead of handling error "
+              << status;
+-  FILE_BASED_TEST_DRIVER_CHECK(false);
++  CHECK(false);
+ }
+ 
+ }  // namespace statusor_internal
+diff --git a/file_based_test_driver/base/statusor.h b/file_based_test_driver/base/statusor.h
+index 28e6bc0..8f37086 100644
+--- a/file_based_test_driver/base/statusor.h
++++ b/file_based_test_driver/base/statusor.h
+@@ -33,7 +33,7 @@
+ //  if (result) {
+ //    result->DoSomethingCool();
+ //  } else {
+-//    FILE_BASED_TEST_DRIVER_LOG(ERROR) << result.status();
++//    LOG(ERROR) << result.status();
+ //  }
+ //
+ // Example that is guaranteed crash if the result holds no value:
+@@ -46,9 +46,9 @@
+ //
+ //  StatusOr<std::unique_ptr<Foo>> result = FooFactory::MakeNewFoo(arg);
+ //  if (!result.ok()) {  // Don't omit .ok().
+-//    FILE_BASED_TEST_DRIVER_LOG(ERROR) << result.status();
++//    LOG(ERROR) << result.status();
+ //  } else if (*result == nullptr) {
+-//    FILE_BASED_TEST_DRIVER_LOG(ERROR) << "Unexpected null pointer";
++//    LOG(ERROR) << "Unexpected null pointer";
+ //  } else {
+ //    (*result)->DoSomethingCool();
+ //  }
+@@ -75,7 +75,7 @@
+ #include "absl/meta/type_traits.h"
+ #include "absl/status/status.h"
+ #include "absl/utility/utility.h"
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "file_based_test_driver/base/statusor_internals.h"
+ 
+ namespace file_based_test_driver_base {
+@@ -211,7 +211,7 @@ class StatusOr : private statusor_internal::StatusOrData<T>,
+ 
+   // Constructs a new StatusOr with the given non-ok status. After calling this
+   // constructor, this->ok() will be false and calls to ValueOrDie() will
+-  // FILE_BASED_TEST_DRIVER_CHECK-fail.
++  // CHECK-fail.
+   //
+   // NOTE: Not explicit - we want to use StatusOr<T> as a return
+   // value, so it is convenient and sensible to be able to do 'return
+@@ -278,7 +278,7 @@ class StatusOr : private statusor_internal::StatusOrData<T>,
+   const absl::Status& status() const&;
+   absl::Status status() &&;
+ 
+-  // Returns a reference to our current value, or FILE_BASED_TEST_DRIVER_CHECK-fails if !this->ok(). If
++  // Returns a reference to our current value, or CHECK-fails if !this->ok(). If
+   // you have already checked the status using this->ok() or operator bool(),
+   // then you probably want to use operator*() or operator->() to access the
+   // current value instead of ValueOrDie().
+@@ -316,7 +316,7 @@ class StatusOr : private statusor_internal::StatusOrData<T>,
+   //
+   // Use this->ok() or `operator bool()` to verify that there is a current
+   // value. Alternatively, see ValueOrDie() for a similar API that guarantees
+-  // FILE_BASED_TEST_DRIVER_CHECK-failing if there is no current value.
++  // CHECK-failing if there is no current value.
+   //
+   const T& operator*() const&;
+   T& operator*() &;
+diff --git a/file_based_test_driver/base/statusor_test.cc b/file_based_test_driver/base/statusor_test.cc
+index 0490717..2131b16 100644
+--- a/file_based_test_driver/base/statusor_test.cc
++++ b/file_based_test_driver/base/statusor_test.cc
+@@ -17,7 +17,7 @@
+ 
+ // Unit tests for StatusOr
+ 
+-#include "file_based_test_driver/base/statusor.h"
++#include "absl/status/statusor.h"
+ 
+ #include <map>
+ #include <memory>
+diff --git a/file_based_test_driver/base/unified_diff_oss.cc b/file_based_test_driver/base/unified_diff_oss.cc
+index ee4a99a..01d89d5 100644
+--- a/file_based_test_driver/base/unified_diff_oss.cc
++++ b/file_based_test_driver/base/unified_diff_oss.cc
+@@ -24,7 +24,7 @@
+ #include <variant>
+ #include <vector>
+ 
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/log.h"
+ #include "absl/strings/match.h"
+ #include "absl/strings/numbers.h"
+ #include "absl/strings/str_cat.h"
+diff --git a/file_based_test_driver/example_test_with_modes.cc b/file_based_test_driver/example_test_with_modes.cc
+index d8bcc4c..70a5f28 100644
+--- a/file_based_test_driver/example_test_with_modes.cc
++++ b/file_based_test_driver/example_test_with_modes.cc
+@@ -37,7 +37,7 @@
+ #include "file_based_test_driver/file_based_test_driver.h"
+ #include "file_based_test_driver/test_case_mode.h"
+ #include "file_based_test_driver/test_case_options.h"
+-#include "file_based_test_driver/base/status.h"
++#include "absl/status/status.h"
+ #include "file_based_test_driver/base/status_macros.h"
+ 
+ namespace {
+@@ -88,7 +88,7 @@ class ExampleTestWithModes : public ::testing::Test {
+     if (!options_status.ok()) {
+       // For bad test cases, prefer to return an error in the output instead
+       // of crashing.
+-      FILE_BASED_TEST_DRIVER_CHECK_OK(test_result->mutable_test_case_outputs()->RecordOutput(
++      CHECK_OK(test_result->mutable_test_case_outputs()->RecordOutput(
+           TestCaseMode(test_mode), "ERROR",
+           absl::StrCat("Failed to parse options: ",
+                        options_status.ToString())));
+@@ -106,7 +106,7 @@ class ExampleTestWithModes : public ::testing::Test {
+     // used to show how blank lines are handled using escaping.)
+     if (absl::StartsWith(test_case, "\n")) {
+       // Return the test output through <test_result>.
+-      FILE_BASED_TEST_DRIVER_CHECK_OK(test_result->mutable_test_case_outputs()->RecordOutput(
++      CHECK_OK(test_result->mutable_test_case_outputs()->RecordOutput(
+           TestCaseMode(test_mode), "" /* result_type */,
+           absl::StrCat("\nINSERTED SECOND LINE\n", test_case.substr(1))));
+       return;
+@@ -122,7 +122,7 @@ class ExampleTestWithModes : public ::testing::Test {
+       if (!absl::SimpleAtoi(number_string, &number)) {
+         // For bad test cases, prefer to return an error in the output instead
+         // of crashing.
+-        FILE_BASED_TEST_DRIVER_CHECK_OK(test_result->mutable_test_case_outputs()->RecordOutput(
++        CHECK_OK(test_result->mutable_test_case_outputs()->RecordOutput(
+             TestCaseMode(test_mode), "ERROR",
+             absl::StrCat("Failed to parse ", number_string)));
+         return;
+@@ -136,7 +136,7 @@ class ExampleTestWithModes : public ::testing::Test {
+     const absl::node_hash_map<std::string, std::string> mode_results =
+         ExtractOutputs(mode_result);
+     for (const auto& result : mode_results) {
+-      FILE_BASED_TEST_DRIVER_CHECK_OK(test_result->mutable_test_case_outputs()->RecordOutput(
++      CHECK_OK(test_result->mutable_test_case_outputs()->RecordOutput(
+                    TestCaseMode(test_mode), result.first, result.second));
+     }
+     // Return the default main output (the sum) if it's not specified in the
+@@ -144,7 +144,7 @@ class ExampleTestWithModes : public ::testing::Test {
+     if (!file_based_test_driver_base::ContainsKey(mode_results, "")) {
+       const std::string result_string =
+           absl::StrCat(options_.GetString(kResultPrefixOption), sum);
+-      FILE_BASED_TEST_DRIVER_CHECK_OK(test_result->mutable_test_case_outputs()->RecordOutput(
++      CHECK_OK(test_result->mutable_test_case_outputs()->RecordOutput(
+                    TestCaseMode(test_mode), "", result_string));
+     }
+   }
+diff --git a/file_based_test_driver/file_based_test_driver.cc b/file_based_test_driver/file_based_test_driver.cc
+index a73cd87..298f810 100644
+--- a/file_based_test_driver/file_based_test_driver.cc
++++ b/file_based_test_driver/file_based_test_driver.cc
+@@ -21,11 +21,13 @@
+ #include <string>
+ #include <vector>
+ 
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/check.h"
++#include "absl/log/log.h"
+ #include "gtest/gtest.h"
+ #include "absl/flags/flag.h"
+ #include "absl/memory/memory.h"
+ #include "absl/status/status.h"
++#include "absl/strings/escaping.h"
+ #include "absl/strings/match.h"
+ #include "absl/strings/str_cat.h"
+ #include "absl/strings/str_join.h"
+@@ -40,7 +42,7 @@
+ #include "file_based_test_driver/base/unified_diff.h"
+ #include "re2/re2.h"
+ #include "file_based_test_driver/base/ret_check.h"
+-#include "file_based_test_driver/base/status.h"
++#include "absl/status/status.h"
+ 
+ ABSL_FLAG(int32_t, file_based_test_driver_insert_leading_blank_lines, 0,
+           "If this is set to N > 0, then file_based_test_driver will "
+@@ -81,6 +83,12 @@ constexpr size_t kLogBufferSize =
+     15000;
+ constexpr absl::string_view kRootDir =
+     "";
++
++#ifdef _WIN32
++constexpr std::string_view kLineEnd = "\r\n";
++#else
++constexpr std::string_view kLineEnd = "\n";
++#endif
+ }  // namespace
+ 
+ namespace file_based_test_driver {
+@@ -98,19 +106,28 @@ static std::string GetWorkspace() {
+ }
+ 
+ std::vector<std::string> SplitTestFileData(absl::string_view file_data) {
++#ifdef _WIN32
++  std::vector<std::string> lines = absl::StrSplit(file_data, "\r\n");
++  if (absl::EndsWith(file_data, "\r\n")) {
++    // We treat \n as a line terminator, not a separator.
++    lines.resize(lines.size() - 1);
++  }
++  return lines;
++#else
+   std::vector<std::string> lines = absl::StrSplit(file_data, '\n');
+   if (absl::EndsWith(file_data, "\n")) {
+     // We treat \n as a line terminator, not a separator.
+     lines.resize(lines.size() - 1);
+   }
+   return lines;
++#endif
+ }
+ 
+ void ReadTestFile(absl::string_view filename, std::vector<std::string>* lines) {
+   std::string file_data;
+   auto status = GetContents(filename, &file_data);
+   if (!status.ok()) {
+-    FILE_BASED_TEST_DRIVER_LOG(FATAL) << "Unable to read: " << filename << ". Failure: " << status;
++    LOG(FATAL) << "Unable to read: " << filename << ". Failure: " << status;
+   }
+   *lines = SplitTestFileData(file_data);
+ }
+@@ -130,9 +147,9 @@ absl::Status GetNextTestCase(const std::vector<std::string>& lines,
+     // Save comments separately.
+     if (line.empty() || line[0] == '#') {
+       if (current_part.empty()) {
+-        absl::StrAppend(&current_comment_start, line, "\n");
++        absl::StrAppend(&current_comment_start, line, kLineEnd);
+       } else {
+-        absl::StrAppend(&current_comment_end, line, "\n");
++        absl::StrAppend(&current_comment_end, line, kLineEnd);
+       }
+       continue;
+     }
+@@ -183,7 +200,7 @@ absl::Status GetNextTestCase(const std::vector<std::string>& lines,
+       line = line.substr(1);
+     }
+ 
+-    absl::StrAppend(&current_part, line, "\n");
++    absl::StrAppend(&current_part, line, kLineEnd);
+   }
+   parts->push_back(current_part);
+   comments->push_back({current_comment_start, current_comment_end});
+@@ -196,7 +213,7 @@ static void ReplaceAtStartOfLine(absl::string_view needle,
+                                  absl::string_view replacement,
+                                  std::string* lines) {
+   if (lines->empty()) return;
+-  FILE_BASED_TEST_DRIVER_CHECK(absl::EndsWith(*lines, "\n"));
++  CHECK(absl::EndsWith(*lines, kLineEnd));
+   std::vector<std::string> split_lines =
+       absl::StrSplit(*lines, '\n', absl::AllowEmpty());
+   // Disregard the last line, it's not a line, but it's there because 'lines'
+@@ -206,7 +223,7 @@ static void ReplaceAtStartOfLine(absl::string_view needle,
+       split_lines[i].replace(0, needle.size(), replacement);
+     }
+   }
+-  *lines = absl::StrJoin(split_lines, "\n");
++  *lines = absl::StrJoin(split_lines, kLineEnd);
+ }
+ 
+ // For the first and the last line in 'lines', replaces 'needle' by
+@@ -216,7 +233,7 @@ static void ReplaceAtStartOfFirstAndLastLines(absl::string_view needle,
+                                               absl::string_view replacement,
+                                               std::string* lines) {
+   if (lines->empty()) return;
+-  FILE_BASED_TEST_DRIVER_CHECK(absl::EndsWith(*lines, "\n"));
++  CHECK(absl::EndsWith(*lines, kLineEnd));
+   if (absl::StartsWith(*lines, needle)) {
+     lines->replace(0, needle.size(), replacement);
+   }
+@@ -250,6 +267,9 @@ std::string BuildTestFileEntry(
+     // at the start or end of the test case. Escape empty lines if they're the
+     // first or last line.
+     ReplaceAtStartOfFirstAndLastLines("\n", "\\\n", &part);
++#ifdef _WIN32
++    ReplaceAtStartOfFirstAndLastLines("\r", "\\\r", &part);
++#endif
+     if (i < comments.size()) {
+       absl::StrAppend(&s, comments[i].start_comment, part,
+                       comments[i].end_comment);
+@@ -297,12 +317,12 @@ static bool CompareAndAppendOutput(
+   }
+ 
+   if (expected_string_for_diff != expected_string) {
+-    FILE_BASED_TEST_DRIVER_LOG(WARNING) << "Expected output is modified for diff because of "
++    LOG(WARNING) << "Expected output is modified for diff because of "
+                  << "file_based_test_driver_ignore_regex flag";
+   }
+ 
+   if (output_string_for_diff != output_string) {
+-    FILE_BASED_TEST_DRIVER_LOG(WARNING) << "Generated Output from test case is modified for diff "
++    LOG(WARNING) << "Generated Output from test case is modified for diff "
+                  << "because of file_based_test_driver_ignore_regex flag";
+   }
+ 
+@@ -333,7 +353,7 @@ static bool CompareAndAppendOutput(
+           << output_string
+           << "******************* END TEST DIFF **********************\n\n";
+     } else {
+-      FILE_BASED_TEST_DRIVER_LOG(WARNING)
++      LOG(WARNING)
+           << "\n\n******************* BEGIN TEST DIFF ********************"
+           << "\nFailure in " << filename
+           << ", line " << start_line_number + 1 << ":\n"
+@@ -344,7 +364,7 @@ static bool CompareAndAppendOutput(
+ 
+       // Separate log message to avoid truncation in the case of long
+       // output.
+-      FILE_BASED_TEST_DRIVER_LOG(WARNING)
++      LOG(WARNING)
+           << "\n=================== DIFF ===============================\n"
+           << diff
+           << "******************* END TEST DIFF **********************\n\n";
+@@ -408,7 +428,7 @@ absl::Status RunAlternations(
+     const std::string& test_case =
+         alternation_values_and_expanded_inputs[alternation_idx].second;
+     if (alternation_values_and_expanded_inputs.size() != 1) {
+-      FILE_BASED_TEST_DRIVER_LOG(INFO) << "Running alternation " << test_alternation;
++      LOG(INFO) << "Running alternation " << test_alternation;
+     }
+     RunTestCaseResultType sub_test_result;
+     // Pass file name, line number, and parts of the test along with
+@@ -527,7 +547,7 @@ static void LogExtractableText(absl::string_view file_path,
+   std::deque<absl::string_view> output_lines = absl::StrSplit(text, '\n');
+   // 'test_output' ends in '\n', this adds an extra line at the end that we
+   // don't want, remove it.
+-  FILE_BASED_TEST_DRIVER_CHECK_EQ(output_lines.back(), "");
++  CHECK_EQ(output_lines.back(), "");
+   output_lines.pop_back();
+   bool first_output_block = true;
+   while (!output_lines.empty()) {
+@@ -545,14 +565,14 @@ static void LogExtractableText(absl::string_view file_path,
+         }
+         break;
+       }
+-      absl::StrAppend(&this_output, output_lines[0], "\n");
++      absl::StrAppend(&this_output, output_lines[0], kLineEnd);
+       output_lines.erase(output_lines.begin());
+     }
+-    FILE_BASED_TEST_DRIVER_LOG(INFO)
+-        << "\n"
++    LOG(INFO)
++        << kLineEnd
+         << "****" << test_output_prefix << "_BEGIN**** "
+         << (first_output_block ? "NEW_TEST_RUN " : "")
+-        << file_path << "\n"
++        << file_path << kLineEnd
+         << this_output
+         << "****" << test_output_prefix << "_END****\n";
+     first_output_block = false;
+@@ -672,7 +692,7 @@ bool RunTestCasesFromOneFile(
+   std::vector<std::string> lines;
+   internal::ReadTestFile(filename, &lines);
+ 
+-  FILE_BASED_TEST_DRIVER_LOG(INFO) << "Executing tests from file " << filename;
++  LOG(INFO) << "Executing tests from file " << filename;
+ 
+   // Keep track of section start time for emitting time based split
+   // suggestions.
+@@ -701,8 +721,8 @@ bool RunTestCasesFromOneFile(
+     }
+ 
+     const int start_line_number = line_number;
+-    FILE_BASED_TEST_DRIVER_CHECK_OK(internal::GetNextTestCase(lines, &line_number, &parts, &comments));
+-    FILE_BASED_TEST_DRIVER_CHECK(!parts.empty());
++    CHECK_OK(internal::GetNextTestCase(lines, &line_number, &parts, &comments));
++    CHECK(!parts.empty());
+ 
+     found_diffs |= RunOneTestCase(filename, start_line_number, &parts,
+                                   &comments, run_test_case, &all_output);
+@@ -722,8 +742,8 @@ bool RunTestCasesFromFiles(
+     RunTestCallback<RunTestCaseResultType> run_test_case) {
+   bool no_diffs = true;
+   std::vector<std::string> test_files;
+-  FILE_BASED_TEST_DRIVER_CHECK_OK(internal::Match(filespec, &test_files)) << "Filespec " << filespec;
+-  FILE_BASED_TEST_DRIVER_CHECK_GT(test_files.size(), size_t{0}) << "Filespec " << filespec;
++  CHECK_OK(internal::Match(filespec, &test_files)) << "Filespec " << filespec;
++  CHECK_GT(test_files.size(), size_t{0}) << "Filespec " << filespec;
+   for (const std::string& filename : test_files) {
+     no_diffs &=
+         RunTestCasesFromOneFile<RunTestCaseResultType, AllTestCasesOutput>(
+@@ -747,7 +767,7 @@ static bool AddBlankLines(
+     // We're not in the first test case, and the flag says we need to make
+     // sure that every test case starts with a number of blank lines
+     // before the test case's comments. Add them if they're not there.
+-    FILE_BASED_TEST_DRIVER_CHECK(!comments->empty());  // The test case is always present.
++    CHECK(!comments->empty());  // The test case is always present.
+     while (!absl::StartsWith(
+         (*comments)[0].start_comment,
+         std::string(
+@@ -755,14 +775,14 @@ static bool AddBlankLines(
+                 FLAGS_file_based_test_driver_insert_leading_blank_lines),
+             '\n'))) {
+       (*comments)[0].start_comment =
+-          absl::StrCat("\n", (*comments)[0].start_comment);
++          absl::StrCat(kLineEnd, (*comments)[0].start_comment);
+       // Make sure the diffs cause a test failure, so that users can update
+       // their goldens with the added empty lines.
+       if (absl::GetFlag(FLAGS_file_based_test_driver_individual_tests)) {
+         ADD_FAILURE() << "Test without leading blank line in " << filename
+                       << ", line " << start_line_number + 1;
+       } else {
+-        FILE_BASED_TEST_DRIVER_LOG(INFO) << "Test without leading blank line in " << filename
++        LOG(INFO) << "Test without leading blank line in " << filename
+                   << ", line " << start_line_number + 1;
+       }
+       added_lines = true;
+@@ -780,10 +800,10 @@ bool RunOneTestCase<RunTestCaseResult, RunTestCaseOutput>(
+     std::vector<internal::TestCasePartComments>* comments,
+     RunTestCallback<RunTestCaseResult> run_test_case,
+     RunTestCaseOutput* all_output) {
+-  FILE_BASED_TEST_DRIVER_CHECK(parts != nullptr);
+-  FILE_BASED_TEST_DRIVER_CHECK(comments != nullptr);
+-  FILE_BASED_TEST_DRIVER_CHECK(all_output != nullptr);
+-  FILE_BASED_TEST_DRIVER_CHECK(!parts->empty());
++  CHECK(parts != nullptr);
++  CHECK(comments != nullptr);
++  CHECK(all_output != nullptr);
++  CHECK(!parts->empty());
+   // Run test.
+   const std::string test_case_log =
+       absl::StrCat("test case from ", filename, ", line ",
+@@ -795,7 +815,7 @@ bool RunOneTestCase<RunTestCaseResult, RunTestCaseOutput>(
+     // Skip empty test cases if there's no expected output.
+     // If there is an expected output, then we'll try to run the test
+     // with an empty input.
+-    FILE_BASED_TEST_DRIVER_LOG(INFO) << "Skipping empty test case from " << filename << ", line "
++    LOG(INFO) << "Skipping empty test case from " << filename << ", line "
+               << start_line_number + 1 << ".";
+     output = *parts;
+   } else {
+@@ -815,7 +835,7 @@ bool RunOneTestCase<RunTestCaseResult, RunTestCaseOutput>(
+     //
+     // See also LogIgnoredTestFlag in file_based_test_driver_test.cc.
+     if (absl::GetFlag(FLAGS_file_based_test_driver_log_ignored_test)) {
+-      FILE_BASED_TEST_DRIVER_LOG(INFO) << "Running " << test_case_log;
++      LOG(INFO) << "Running " << test_case_log;
+     }
+     // Otherwise, we delay the logging until we know if the test is ignored.
+ 
+@@ -825,15 +845,15 @@ bool RunOneTestCase<RunTestCaseResult, RunTestCaseOutput>(
+     test_result.set_filename(std::string(filename));
+     test_result.set_line(start_line_number + 1);
+     test_result.set_parts(*parts);
+-    FILE_BASED_TEST_DRIVER_CHECK_OK(internal::RunAlternations(&test_result, run_test_case));
++    CHECK_OK(internal::RunAlternations(&test_result, run_test_case));
+     output = test_result.test_outputs();
+     ignore_test_output = test_result.ignore_test_output();
+   }
+ 
+   // Ensure all nonempty parts end in \n.
+   for (std::string& output_part : output) {
+-    if (!output_part.empty() && !absl::EndsWith(output_part, "\n")) {
+-      absl::StrAppend(&output_part, "\n");
++    if (!output_part.empty() && !absl::EndsWith(output_part, kLineEnd)) {
++      absl::StrAppend(&output_part, kLineEnd);
+     }
+   }
+ 
+@@ -845,7 +865,7 @@ bool RunOneTestCase<RunTestCaseResult, RunTestCaseOutput>(
+   bool update_prev_output = true;
+   if (ignore_test_output) {
+     if (absl::GetFlag(FLAGS_file_based_test_driver_log_ignored_test)) {
+-      FILE_BASED_TEST_DRIVER_LOG(INFO) << "Ignoring test result";
++      LOG(INFO) << "Ignoring test result";
+     }
+     output = *parts;
+     if (parts->size() == 2 && (*parts)[1] == kSameAsPrevious) {
+@@ -871,7 +891,7 @@ bool RunOneTestCase<RunTestCaseResult, RunTestCaseOutput>(
+     }
+ 
+     if (!absl::GetFlag(FLAGS_file_based_test_driver_log_ignored_test)) {
+-      FILE_BASED_TEST_DRIVER_LOG(INFO) << "Executed " << test_case_log;
++      LOG(INFO) << "Executed " << test_case_log;
+     }
+   }
+ 
+@@ -904,10 +924,10 @@ bool RunOneTestCase<RunTestCaseWithModesResult, RunTestCaseWithModesOutput>(
+     std::vector<internal::TestCasePartComments>* comments,
+     RunTestCallback<RunTestCaseWithModesResult> run_test_case,
+     RunTestCaseWithModesOutput* all_output) {
+-  FILE_BASED_TEST_DRIVER_CHECK(parts != nullptr);
+-  FILE_BASED_TEST_DRIVER_CHECK(comments != nullptr);
+-  FILE_BASED_TEST_DRIVER_CHECK(all_output != nullptr);
+-  FILE_BASED_TEST_DRIVER_CHECK(!parts->empty());
++  CHECK(parts != nullptr);
++  CHECK(comments != nullptr);
++  CHECK(all_output != nullptr);
++  CHECK(!parts->empty());
+ 
+   const std::string test_case_log =
+       absl::StrCat("test case from ", filename, ", line ",
+@@ -923,7 +943,7 @@ bool RunOneTestCase<RunTestCaseWithModesResult, RunTestCaseWithModesOutput>(
+     // Skip empty test cases if there's no expected output.
+     // If there is an expected output, then we'll try to run the test
+     // with an empty input.
+-    FILE_BASED_TEST_DRIVER_LOG(INFO) << "Skipping empty test case from " << filename << ", line "
++    LOG(INFO) << "Skipping empty test case from " << filename << ", line "
+               << start_line_number + 1 << ".";
+   } else {
+     // What will be logged in the log file:
+@@ -942,7 +962,7 @@ bool RunOneTestCase<RunTestCaseWithModesResult, RunTestCaseWithModesOutput>(
+     //
+     // See also LogIgnoredTestFlag in file_based_test_driver_test.cc.
+     if (absl::GetFlag(FLAGS_file_based_test_driver_log_ignored_test)) {
+-      FILE_BASED_TEST_DRIVER_LOG(INFO) << "Running " << test_case_log;
++      LOG(INFO) << "Running " << test_case_log;
+     }
+     // Otherwise, we delay the logging until we know if the test is ignored.
+ 
+@@ -951,7 +971,7 @@ bool RunOneTestCase<RunTestCaseWithModesResult, RunTestCaseWithModesOutput>(
+       expected_outputs = *all_output->prev_expected_outputs();
+     } else {
+       const std::vector<std::string> outputs(parts->begin() + 1, parts->end());
+-      FILE_BASED_TEST_DRIVER_CHECK_OK(expected_outputs.ParseFrom(outputs));
++      CHECK_OK(expected_outputs.ParseFrom(outputs));
+     }
+ 
+     // Pass file name, line number, and parts of the test along with
+@@ -959,11 +979,11 @@ bool RunOneTestCase<RunTestCaseWithModesResult, RunTestCaseWithModesOutput>(
+     test_result.set_filename(std::string(filename));
+     test_result.set_line(start_line_number + 1);
+     test_result.set_parts(*parts);
+-    FILE_BASED_TEST_DRIVER_CHECK_OK(internal::RunAlternations(&test_result, run_test_case));
++    CHECK_OK(internal::RunAlternations(&test_result, run_test_case));
+     if (test_result.ignore_test_output()) {
+       ignore_test_output = true;
+     } else {
+-      FILE_BASED_TEST_DRIVER_CHECK_OK(TestCaseOutputs::MergeOutputs(expected_outputs,
++      CHECK_OK(TestCaseOutputs::MergeOutputs(expected_outputs,
+                                              {test_result.test_case_outputs()},
+                                              &merged_outputs));
+     }
+@@ -976,7 +996,7 @@ bool RunOneTestCase<RunTestCaseWithModesResult, RunTestCaseWithModesOutput>(
+   bool update_prev_output = true;
+   if (ignore_test_output) {
+     if (absl::GetFlag(FLAGS_file_based_test_driver_log_ignored_test)) {
+-      FILE_BASED_TEST_DRIVER_LOG(INFO) << "Ignoring test result";
++      LOG(INFO) << "Ignoring test result";
+     }
+     merged_outputs = expected_outputs;
+     if (parts->size() == 2 && (*parts)[1] == kSameAsPrevious) {
+@@ -998,7 +1018,7 @@ bool RunOneTestCase<RunTestCaseWithModesResult, RunTestCaseWithModesOutput>(
+     }
+ 
+     if (!absl::GetFlag(FLAGS_file_based_test_driver_log_ignored_test)) {
+-      FILE_BASED_TEST_DRIVER_LOG(INFO) << "Executed " << test_case_log;
++      LOG(INFO) << "Executed " << test_case_log;
+     }
+   }
+ 
+@@ -1008,17 +1028,17 @@ bool RunOneTestCase<RunTestCaseWithModesResult, RunTestCaseWithModesOutput>(
+ 
+   std::vector<std::string> expected_outputs_parts;
+   expected_outputs_parts.push_back((*parts)[0]);
+-  FILE_BASED_TEST_DRIVER_CHECK_OK(expected_outputs.GetCombinedOutputs(
++  CHECK_OK(expected_outputs.GetCombinedOutputs(
+       false /* include_possible_modes */, &expected_outputs_parts));
+ 
+   std::vector<std::string> merged_outputs_parts;
+   merged_outputs_parts.push_back((*parts)[0]);
+-  FILE_BASED_TEST_DRIVER_CHECK_OK(merged_outputs.GetCombinedOutputs(
++  CHECK_OK(merged_outputs.GetCombinedOutputs(
+       false /* include_possible_modes */, &merged_outputs_parts));
+ 
+   std::vector<std::string> actual_outputs_parts;
+   actual_outputs_parts.push_back((*parts)[0]);
+-  FILE_BASED_TEST_DRIVER_CHECK_OK(test_result.test_case_outputs().GetCombinedOutputs(
++  CHECK_OK(test_result.test_case_outputs().GetCombinedOutputs(
+       true /* include_possible_modes */, &actual_outputs_parts));
+ 
+   const bool added_blank_lines =
+@@ -1073,7 +1093,7 @@ bool RunTestCasesWithModesFromFiles(
+ 
+ int64_t CountTestCasesInFiles(absl::string_view filespec) {
+   std::vector<std::string> test_files;
+-  FILE_BASED_TEST_DRIVER_CHECK_OK(internal::Match(filespec, &test_files))
++  CHECK_OK(internal::Match(filespec, &test_files))
+       << "Unable to find files matching " << filespec;
+   int total_num_queries = 0;
+   for (const std::string& file : test_files) {
+@@ -1084,7 +1104,7 @@ int64_t CountTestCasesInFiles(absl::string_view filespec) {
+       using file_based_test_driver::internal::TestCasePartComments;
+       std::vector<std::string> parts;
+       std::vector<TestCasePartComments> comments;
+-      FILE_BASED_TEST_DRIVER_CHECK_OK(file_based_test_driver::internal::GetNextTestCase(
++      CHECK_OK(file_based_test_driver::internal::GetNextTestCase(
+           lines, &line_number, &parts, &comments));
+       ++total_num_queries;
+     }
+diff --git a/file_based_test_driver/file_based_test_driver_test.cc b/file_based_test_driver/file_based_test_driver_test.cc
+index 46148e7..72b8f61 100644
+--- a/file_based_test_driver/file_based_test_driver_test.cc
++++ b/file_based_test_driver/file_based_test_driver_test.cc
+@@ -387,7 +387,7 @@ TEST(TestdataUtilTest, ErrorForCommentInTestBody) {
+ static void RunTestCallback(
+     int* num_callbacks, absl::string_view test_case,
+     file_based_test_driver::RunTestCaseResult* test_result) {
+-  FILE_BASED_TEST_DRIVER_LOG(INFO) << "Running test case " << test_case;
++  LOG(INFO) << "Running test case " << test_case;
+   (*num_callbacks)++;
+   if (test_case == "line 1\n") {
+     test_result->AddTestOutput("Line 2\n");
+@@ -409,7 +409,7 @@ static void RunTestCallback(
+     int sum = 0;
+     for (int i = 1; i < numbers.size(); ++i) {
+       int32_t v;
+-      FILE_BASED_TEST_DRIVER_CHECK(absl::SimpleAtoi(numbers[i], &v));
++      CHECK(absl::SimpleAtoi(numbers[i], &v));
+       sum += v;
+     }
+     test_result->AddTestOutput(absl::StrCat("sum ", sum, "\n"));
+@@ -423,7 +423,7 @@ static void RunTestCallback(
+ static void RunTestCallbackWithModes(
+     int* num_callbacks, absl::string_view test_case,
+     file_based_test_driver::RunTestCaseWithModesResult* test_result) {
+-  FILE_BASED_TEST_DRIVER_LOG(INFO) << "Running test case " << test_case;
++  LOG(INFO) << "Running test case " << test_case;
+   (*num_callbacks)++;
+   FILE_BASED_TEST_DRIVER_ASSERT_OK_AND_ASSIGN(TestCaseMode mode, TestCaseMode::Create("DEFAULT_MODE"));
+   if (test_case == "line 1\n" || test_case == "line 1copy\n") {
+@@ -450,7 +450,7 @@ static void RunTestCallbackWithModes(
+     int sum = 0;
+     for (int i = 1; i < numbers.size(); ++i) {
+       int32_t v;
+-      FILE_BASED_TEST_DRIVER_CHECK(absl::SimpleAtoi(numbers[i], &v));
++      CHECK(absl::SimpleAtoi(numbers[i], &v));
+       sum += v;
+     }
+     FILE_BASED_TEST_DRIVER_EXPECT_OK(test_result->mutable_test_case_outputs()->RecordOutput(
+@@ -702,7 +702,7 @@ Line 6
+ static void RunRegexTestCallback(
+     int* num_callbacks, absl::string_view test_case,
+     file_based_test_driver::RunTestCaseResult* test_result) {
+-  FILE_BASED_TEST_DRIVER_LOG(INFO) << "Running test case " << test_case;
++  LOG(INFO) << "Running test case " << test_case;
+   (*num_callbacks)++;
+   test_result->AddTestOutput("Result_rep 5\n");
+ }
+@@ -747,7 +747,7 @@ Result_rep 2
+ static void EchoCallback(
+     int* num_callbacks, absl::string_view test_case,
+     file_based_test_driver::RunTestCaseResult* test_result) {
+-  FILE_BASED_TEST_DRIVER_LOG(INFO) << "Running test case " << test_case;
++  LOG(INFO) << "Running test case " << test_case;
+   (*num_callbacks)++;
+   test_result->AddTestOutput(absl::StrCat("Test got input: ", test_case));
+ }
+diff --git a/file_based_test_driver/test_case_mode.cc b/file_based_test_driver/test_case_mode.cc
+index 831f1f7..c99c2d6 100644
+--- a/file_based_test_driver/test_case_mode.cc
++++ b/file_based_test_driver/test_case_mode.cc
+@@ -20,7 +20,7 @@
+ #include <utility>
+ #include <vector>
+ 
+-#include "file_based_test_driver/base/statusor.h"
++#include "absl/status/statusor.h"
+ #include "absl/strings/ascii.h"
+ #include "absl/strings/str_cat.h"
+ #include "absl/strings/str_join.h"
+@@ -28,12 +28,13 @@
+ #include "absl/strings/string_view.h"
+ #include "absl/strings/strip.h"
+ #include "re2/re2.h"
++#include "file_based_test_driver/base/status_builder.h"
+ #include "file_based_test_driver/base/status_macros.h"
+ 
+ namespace file_based_test_driver {
+ 
+ // static
+-file_based_test_driver_base::StatusOr<TestCaseMode> TestCaseMode::Create(
++absl::StatusOr<TestCaseMode> TestCaseMode::Create(
+     std::vector<std::string> mode_parts) {
+   for (const std::string& part : mode_parts) {
+     if (part.empty()) {
+@@ -57,7 +58,7 @@ file_based_test_driver_base::StatusOr<TestCaseMode> TestCaseMode::Create(
+ }
+ 
+ // static
+-file_based_test_driver_base::StatusOr<TestCaseMode> TestCaseMode::Create(
++absl::StatusOr<TestCaseMode> TestCaseMode::Create(
+     absl::string_view description) {
+   std::vector<std::string> mode_parts =
+       absl::StrSplit(std::string(description), ' ');
+@@ -69,7 +70,7 @@ std::string TestCaseMode::ToString() const {
+ }
+ 
+ // static
+-file_based_test_driver_base::StatusOr<std::vector<TestCaseMode>> TestCaseMode::ParseModes(
++absl::StatusOr<std::vector<TestCaseMode>> TestCaseMode::ParseModes(
+     absl::string_view modes_string) {
+   std::vector<TestCaseMode> test_modes;
+ 
+@@ -90,10 +91,10 @@ file_based_test_driver_base::StatusOr<std::vector<TestCaseMode>> TestCaseMode::P
+       return ::file_based_test_driver_base::UnknownErrorBuilder().LogError()
+              << "Found empty test mode enclosed in []:\n";
+     }
+-    FILE_BASED_TEST_DRIVER_ASSIGN_OR_RETURN(TestCaseMode mode,
+-                     TestCaseMode::Create(mode_name));
++    absl::StatusOr<TestCaseMode> mode = TestCaseMode::Create(mode_name);
++    if (!mode.ok()) return mode.status();
+     modes_string.remove_prefix(index + 1);
+-    test_modes.emplace_back(std::move(mode));
++    test_modes.emplace_back(*std::move(mode));
+   }
+ 
+   return test_modes;
+diff --git a/file_based_test_driver/test_case_mode.h b/file_based_test_driver/test_case_mode.h
+index f36a4e5..7b502bd 100644
+--- a/file_based_test_driver/test_case_mode.h
++++ b/file_based_test_driver/test_case_mode.h
+@@ -27,7 +27,7 @@
+ #include "absl/container/node_hash_map.h"
+ #include "absl/container/node_hash_set.h"
+ #include "absl/hash/hash.h"
+-#include "file_based_test_driver/base/statusor.h"
++#include "absl/status/statusor.h"
+ #include "absl/strings/str_cat.h"
+ #include "absl/strings/string_view.h"
+ 
+@@ -55,11 +55,11 @@ class TestCaseMode {
+   template <class T>
+   using UnorderedMap = absl::node_hash_map<TestCaseMode, T>;
+ 
+-  static file_based_test_driver_base::StatusOr<TestCaseMode> Create(
++  static absl::StatusOr<TestCaseMode> Create(
+       std::vector<std::string> mode_parts);
+   // Create a description of a test, which is a space-separated list of
+   // mode-parts.
+-  static file_based_test_driver_base::StatusOr<TestCaseMode> Create(absl::string_view description);
++  static absl::StatusOr<TestCaseMode> Create(absl::string_view description);
+ 
+   TestCaseMode() = default;
+ 
+@@ -75,7 +75,7 @@ class TestCaseMode {
+     return H::combine(std::move(h), test_case_mode.mode_parts_);
+   }
+ 
+-  static file_based_test_driver_base::StatusOr<std::vector<TestCaseMode>> ParseModes(
++  static absl::StatusOr<std::vector<TestCaseMode>> ParseModes(
+       absl::string_view modes_string);
+   static std::string CollapseModes(const TestCaseMode::Set& modes);
+ 
+diff --git a/file_based_test_driver/test_case_options.cc b/file_based_test_driver/test_case_options.cc
+index d138e97..a1f24c0 100644
+--- a/file_based_test_driver/test_case_options.cc
++++ b/file_based_test_driver/test_case_options.cc
+@@ -69,7 +69,7 @@ absl::Status TestCaseOptions::ParseTestCaseOptions(std::string* str,
+   for (auto& options_element : options_by_lower_keyword_) {
+     TestCaseOption& option = options_element.second;
+     option.current_value = option.default_value;
+-    FILE_BASED_TEST_DRIVER_DCHECK(!option.current_value.is_set_explicitly);
++    DCHECK(!option.current_value.is_set_explicitly);
+   }
+ 
+   // Finally, set the actual values from the actual (non-"default") options.
+diff --git a/file_based_test_driver/test_case_options.h b/file_based_test_driver/test_case_options.h
+index 64a4cb3..556a9a7 100644
+--- a/file_based_test_driver/test_case_options.h
++++ b/file_based_test_driver/test_case_options.h
+@@ -77,7 +77,8 @@
+ #include <utility>
+ #include <vector>
+ 
+-#include "file_based_test_driver/base/logging.h"
++#include "absl/log/check.h"
++#include "absl/log/log.h"
+ #include <cstdint>
+ #include "absl/container/flat_hash_map.h"
+ #include "absl/status/status.h"
+@@ -194,7 +195,7 @@ class TestCaseOptions {
+   // with [keyword] and [no_keyword], for true and false respectively.
+   void RegisterBool(absl::string_view keyword, bool default_value) {
+     const std::string keyword_lower = absl::AsciiStrToLower(keyword);
+-    FILE_BASED_TEST_DRIVER_CHECK(options_by_lower_keyword_.try_emplace(
++    CHECK(options_by_lower_keyword_.try_emplace(
+         keyword_lower, keyword_lower, default_value).second);
+   }
+ 
+@@ -202,7 +203,7 @@ class TestCaseOptions {
+   // value may be set with [keyword=some string].
+   void RegisterString(absl::string_view keyword, std::string default_value) {
+     const std::string keyword_lower = absl::AsciiStrToLower(keyword);
+-    FILE_BASED_TEST_DRIVER_CHECK(options_by_lower_keyword_.try_emplace(
++    CHECK(options_by_lower_keyword_.try_emplace(
+         keyword_lower, keyword_lower, std::move(default_value)).second);
+   }
+ 
+@@ -210,7 +211,7 @@ class TestCaseOptions {
+   // value may be set with [keyword=123456].
+   void RegisterInt64(absl::string_view keyword, int64_t default_value) {
+     const std::string keyword_lower = absl::AsciiStrToLower(keyword);
+-    FILE_BASED_TEST_DRIVER_CHECK(options_by_lower_keyword_.try_emplace(
++    CHECK(options_by_lower_keyword_.try_emplace(
+         keyword_lower, keyword_lower, default_value).second);
+   }
+ 
+@@ -219,7 +220,7 @@ class TestCaseOptions {
+   void RegisterDuration(absl::string_view keyword,
+                         absl::Duration default_value) {
+     const std::string keyword_lower = absl::AsciiStrToLower(keyword);
+-    FILE_BASED_TEST_DRIVER_CHECK(options_by_lower_keyword_
++    CHECK(options_by_lower_keyword_
+               .try_emplace(keyword_lower, keyword_lower, default_value)
+               .second);
+   }
+@@ -277,7 +278,7 @@ class TestCaseOptions {
+   bool IsExplicitlySet(absl::string_view option_keyword) const {
+     auto it = options_by_lower_keyword_.find(
+         absl::AsciiStrToLower(option_keyword));
+-    FILE_BASED_TEST_DRIVER_CHECK(it != options_by_lower_keyword_.end())
++    CHECK(it != options_by_lower_keyword_.end())
+         << "Unknown option: " << option_keyword;
+     return it->second.current_value.is_set_explicitly;
+   }
+@@ -289,7 +290,7 @@ class TestCaseOptions {
+   bool DefaultWasParsed(absl::string_view option_keyword) const {
+     auto it = options_by_lower_keyword_.find(
+         absl::AsciiStrToLower(option_keyword));
+-    FILE_BASED_TEST_DRIVER_CHECK(it != options_by_lower_keyword_.end())
++    CHECK(it != options_by_lower_keyword_.end())
+         << "Unknown option: " << option_keyword;
+     return it->second.default_was_parsed;
+   }
+@@ -320,9 +321,9 @@ class TestCaseOptions {
+       TestCaseOption::Type type, absl::string_view option_keyword) const {
+     const std::string keyword_lower = absl::AsciiStrToLower(option_keyword);
+     auto it = options_by_lower_keyword_.find(keyword_lower);
+-    FILE_BASED_TEST_DRIVER_CHECK(it != options_by_lower_keyword_.end())
++    CHECK(it != options_by_lower_keyword_.end())
+         << "Unknown option: " << keyword_lower;
+-    FILE_BASED_TEST_DRIVER_CHECK_EQ(it->second.type, type) << "Invalid keyword type requested";
++    CHECK_EQ(it->second.type, type) << "Invalid keyword type requested";
+     return &it->second.current_value;
+   }
+ 
+diff --git a/file_based_test_driver/test_case_outputs.cc b/file_based_test_driver/test_case_outputs.cc
+index 5280c22..12bdd93 100644
+--- a/file_based_test_driver/test_case_outputs.cc
++++ b/file_based_test_driver/test_case_outputs.cc
+@@ -35,6 +35,7 @@
+ #include "file_based_test_driver/base/map_util.h"
+ #include "re2/re2.h"
+ #include "file_based_test_driver/base/ret_check.h"
++#include "file_based_test_driver/base/status_builder.h"
+ #include "file_based_test_driver/base/status_macros.h"
+ 
+ namespace file_based_test_driver {
+@@ -102,8 +103,11 @@ absl::Status ParseFirstLine(const absl::string_view part,
+   absl::ConsumePrefix(&result->remainder, result->first_line);
+   absl::ConsumePrefix(&result->remainder, "\n");
+ 
+-  FILE_BASED_TEST_DRIVER_ASSIGN_OR_RETURN(result->test_modes, TestCaseMode::ParseModes(test_modes_sp),
+-                   _.SetAppend() << result->first_line);
++  absl::StatusOr<std::vector<TestCaseMode>> test_modes = TestCaseMode::ParseModes(test_modes_sp);
++  if (!test_modes.ok()) {
++    return file_based_test_driver_base::StatusBuilder(test_modes.status()).SetPrepend() << result->first_line;
++  }
++  result->test_modes = *std::move(test_modes);
+   return absl::OkStatus();
+ }
+ 
+@@ -296,7 +300,7 @@ absl::Status TestCaseOutputs::BreakOutAllModesOutputs(
+         FILE_BASED_TEST_DRIVER_RET_CHECK(result_type_to_output_map.AddOutput(result_type, output));
+       }
+     }
+-    FILE_BASED_TEST_DRIVER_RET_CHECK_EQ(size_t{1}, outputs_.erase(TestCaseMode()));
++    FILE_BASED_TEST_DRIVER_RET_CHECK(size_t{1} == outputs_.erase(TestCaseMode()));
+   }
+   return absl::OkStatus();
+ }
+@@ -343,7 +347,7 @@ absl::Status TestCaseOutputs::GenerateAllModesOutputs(
+           FILE_BASED_TEST_DRIVER_RET_CHECK(result_type_to_output_map != nullptr);
+           FILE_BASED_TEST_DRIVER_RET_CHECK(result_type_to_output_map->RemoveResultType(result_type));
+           if (result_type_to_output_map->empty()) {
+-            FILE_BASED_TEST_DRIVER_RET_CHECK_EQ(size_t{1}, outputs_.erase(mode));
++            FILE_BASED_TEST_DRIVER_RET_CHECK(size_t{1} == outputs_.erase(mode));
+           }
+         }
+       }
+@@ -367,7 +371,7 @@ absl::Status TestCaseOutputs::DisableTestMode(
+     const TestCaseMode& disabled_mode) {
+   disabled_modes_.insert(disabled_mode);
+   if (file_based_test_driver_base::ContainsKey(outputs_, disabled_mode)) {
+-    FILE_BASED_TEST_DRIVER_RET_CHECK_EQ(size_t{1}, outputs_.erase(disabled_mode));
++    FILE_BASED_TEST_DRIVER_RET_CHECK(size_t{1} == outputs_.erase(disabled_mode));
+   }
+   return absl::OkStatus();
+ }
+@@ -427,12 +431,12 @@ absl::Status TestCaseOutputs::MergeOutputs(
+       } else {
+         if (possible_modes != outputs.possible_modes()) {
+           std::vector<std::string> combined_outputs1;
+-          FILE_BASED_TEST_DRIVER_RET_CHECK_OK(
++          FILE_BASED_TEST_DRIVER_RET_CHECK(
+               actual_outputs[possible_modes_idx].GetCombinedOutputs(
+-                  true /* include_possible_modes*/, &combined_outputs1));
++                  true /* include_possible_modes*/, &combined_outputs1).ok());
+           std::vector<std::string> combined_outputs2;
+-          FILE_BASED_TEST_DRIVER_RET_CHECK_OK(outputs.GetCombinedOutputs(
+-              true /* include_possible_modes*/, &combined_outputs2));
++          FILE_BASED_TEST_DRIVER_RET_CHECK(outputs.GetCombinedOutputs(
++              true /* include_possible_modes*/, &combined_outputs2).ok());
+           return ::file_based_test_driver_base::UnknownErrorBuilder().LogError()
+                  << "Cannot merge the following two outputs because their "
+                  << "possible modes lists are different:"
+@@ -458,8 +462,8 @@ absl::Status TestCaseOutputs::MergeOutputs(
+     // Actual outputs should not have 'all modes' outputs.
+     if (outputs.HasAllModesResult()) {
+       std::vector<std::string> combined_outputs;
+-      FILE_BASED_TEST_DRIVER_RET_CHECK_OK(outputs.GetCombinedOutputs(false /* include_possible_modes*/,
+-                                              &combined_outputs));
++      FILE_BASED_TEST_DRIVER_RET_CHECK(outputs.GetCombinedOutputs(false /* include_possible_modes*/,
++                                              &combined_outputs).ok());
+       return ::file_based_test_driver_base::UnknownErrorBuilder().LogError()
+              << "Cannot merge partition output because it contains "
+              << "'all modes' result:\n"

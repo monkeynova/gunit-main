@@ -11,17 +11,17 @@ cc_library(
     ],
     deps = [
         ":vlog",
-        "@com_github_google_benchmark//:benchmark",
-        "@com_google_absl//absl/debugging:failure_signal_handler",
-        "@com_google_absl//absl/debugging:symbolize",
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/flags:parse",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/log:flags",
-        "@com_google_absl//absl/log:initialize",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest",
+        "@google_benchmark//:benchmark",
+        "@abseil-cpp//absl/debugging:failure_signal_handler",
+        "@abseil-cpp//absl/debugging:symbolize",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/flags:parse",
+        "@abseil-cpp//absl/log",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/log:flags",
+        "@abseil-cpp//absl/log:initialize",
+        "@abseil-cpp//absl/strings",
+        "@googletest//:gtest",
     ],
 )
 
@@ -34,10 +34,10 @@ cc_library(
     ],
     deps = [
         ":main_lib",
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/log:check",
-        "@com_google_absl//absl/strings",
-        "@com_google_googletest//:gtest",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/log:check",
+        "@abseil-cpp//absl/strings",
+        "@googletest//:gtest",
     ],
 )
 
@@ -46,7 +46,7 @@ cc_test(
     srcs = ["meta_test.cc"],
     deps = [
         ":test_main",
-        "@com_google_googletest//:gtest",
+        "@googletest//:gtest",
     ],
 )
 
@@ -55,8 +55,8 @@ cc_library(
     hdrs = ["vlog.h"],
     visibility = ["//visibility:public"],
     deps = [
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/log",
+        "@abseil-cpp//absl/flags:flag",
+        "@abseil-cpp//absl/log",
     ],
     alwayslink = 1,
 )
