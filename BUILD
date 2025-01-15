@@ -37,6 +37,7 @@ cc_library(
         "@abseil-cpp//absl/flags:flag",
         "@abseil-cpp//absl/log:check",
         "@abseil-cpp//absl/strings",
+        "@fuzztest//fuzztest:init_fuzztest",
         "@googletest//:gtest",
     ],
 )
@@ -46,6 +47,7 @@ cc_test(
     srcs = ["meta_test.cc"],
     deps = [
         ":test_main",
+        "@fuzztest//fuzztest",
         "@googletest//:gtest",
     ],
 )

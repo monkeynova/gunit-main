@@ -2,11 +2,16 @@
 #include "absl/log/check.h"
 #include "absl/strings/str_join.h"
 #include "benchmark/benchmark.h"
+#include "fuzztest/init_fuzztest.h"
 #include "gtest/gtest.h"
 #include "main_lib.h"
 
 ABSL_FLAG(bool, benchmark, false,
           "If true, runs benchmarks rather than gunit test suite.");
+
+ABSL_FLAG(bool, run_fuzz_tests, true,
+          "If true (the default), includes any fuzz tests in the gunit test "
+          "suite.");
 
 int main(int argc, char** argv) {
   std::vector<char*> args = InitMain(
@@ -21,5 +26,9 @@ int main(int argc, char** argv) {
     benchmark::RunSpecifiedBenchmarks();
     return 0;
   }
+  if (absl::GetFlag(FLAGS_run_fuzz_tests)) {
+    fuzztest::InitFuzzTest(&argc, &argv);
+  }
+
   return RUN_ALL_TESTS();
 }
