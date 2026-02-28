@@ -6,16 +6,41 @@
 ###############################################################################
 
 module(name="com_monkeynova_gunit_main")
-bazel_dep(name = "abseil-cpp", version = "20250814.1")
-bazel_dep(name = "bazel_skylib", version = "1.8.2")
-bazel_dep(name = "fuzztest", version = "20250805.0")
-bazel_dep(name = "googletest", version = "1.17.0.bcr.2")
-bazel_dep(name = "google_benchmark", version = "1.9.4")
-bazel_dep(name = "com_monkeynova_base_workspace")
 
+bazel_dep(name = "abseil-cpp", version = "20260107.1")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+bazel_dep(name = "googletest", version = "1.17.0.bcr.2")
+bazel_dep(name = "google_benchmark", version = "1.9.5")
+bazel_dep(name = "rules_cc", version = "0.2.17")
+
+# Personal dependencies not stored in BCR.
+bazel_dep(name = "com_monkeynova_base_workspace")
 git_override(
    module_name = "com_monkeynova_base_workspace",
    remote = "https://github.com/monkeynova/base-workspace.git",
    # branch = "main",
-   commit = "49867f63b311391d6ccdaf99b7e5cbc5b9750120",
+   commit = "b01d5b4bc238554c8e5e513a70f9f8d0af25f35d",
 )
+
+# Transitive dependencies, that need manual resolving.
+bazel_dep(name = "highwayhash", version = "0.0.0-20240305-5ad3bf8.bcr.1")
+# Needs updating to be 9.0.0 compatible.
+bazel_dep(name = "brotli_go", version = "1.2.0")
+# bazel 9.0.0 compatability
+bazel_dep(name = "fuzztest")
+git_override(
+   module_name = "fuzztest",
+   remote = "https://github.com/google/fuzztest.git",
+   # branch = "main",
+   commit = "362a279f0ad018574278e72c4e98e2b99d3991bb",
+)
+## BCR not updated to handle swift dependency.
+bazel_dep(name = "flatbuffers")
+git_override(
+   module_name = "flatbuffers",
+   remote = "https://github.com/google/flatbuffers.git",
+   # branch = "master",
+   commit = "94d6b8086b46bdff7da308aa2d3aebf336d29f55",
+)
+# bazel 9.0.0 compatability
+bazel_dep(name = "aspect_rules_esbuild", version = "0.25.0")

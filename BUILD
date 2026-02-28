@@ -1,4 +1,6 @@
 load("@com_monkeynova_base_workspace//:default_rules.bzl", "default_rules")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
 
 default_rules(workspace_dep = "update_workspace.date")
 
@@ -11,7 +13,6 @@ cc_library(
     ],
     deps = [
         ":vlog",
-        "@google_benchmark//:benchmark",
         "@abseil-cpp//absl/debugging:failure_signal_handler",
         "@abseil-cpp//absl/debugging:symbolize",
         "@abseil-cpp//absl/flags:flag",
@@ -21,6 +22,7 @@ cc_library(
         "@abseil-cpp//absl/log:flags",
         "@abseil-cpp//absl/log:initialize",
         "@abseil-cpp//absl/strings",
+        "@google_benchmark//:benchmark",
         "@googletest//:gtest",
     ],
 )
